@@ -24,6 +24,24 @@ mock_provider "aws" {
       token = "terraform-test-token"
     }
   }
+
+  mock_data "aws_iam_policy_document" {
+    defaults = {
+      id            = "terraform-test-policy"
+      json          = "{\"Version\":\"2012-10-17\",\"Statement\":[]}"
+      minified_json = "{\"Version\":\"2012-10-17\",\"Statement\":[]}"
+    }
+  }
+
+  mock_data "aws_iam_session_context" {
+    defaults = {
+      arn        = "arn:aws:iam::123456789012:role/terraform-test"
+      id         = "terraform-test"
+      issuer_arn = "arn:aws:iam::123456789012:role/terraform-test"
+      issuer_id  = "AROATERRAFORMTEST"
+      user_id    = "AROATERRAFORMTEST:terraform-test"
+    }
+  }
 }
 
 mock_provider "helm" {}
@@ -100,7 +118,8 @@ run "fails_without_existing_network_inputs" {
   command = plan
 
   variables {
-    create_vpc = false
+    create_vpc         = false
+    private_subnet_ids = ["subnet-11111111", "subnet-22222222"]
   }
 
   expect_failures = [check.existing_network_inputs]
@@ -132,6 +151,7 @@ run "fails_without_s3_authentication" {
     private_subnet_ids      = ["subnet-11111111", "subnet-22222222"]
     public_subnet_ids       = ["subnet-33333333", "subnet-44444444"]
     s3_existing_secret_name = null
+    s3_use_iam_profile      = false
     vpc_id                  = "vpc-12345678"
   }
 
