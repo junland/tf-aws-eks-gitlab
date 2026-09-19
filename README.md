@@ -167,3 +167,13 @@ Run the suite from the repository root:
 terraform init
 terraform test
 ```
+
+For a local AWS endpoint integration smoke test with Floci:
+
+```bash
+docker compose -f docker-compose.floci.yml up -d
+bash tests/run-floci.sh
+docker compose -f docker-compose.floci.yml down
+```
+
+The Floci test creates and destroys the module VPC only. EKS, Kubernetes, and Helm resources require a Kubernetes control plane and remain covered by the mocked Terraform tests.
