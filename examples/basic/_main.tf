@@ -6,7 +6,7 @@ module "gitlab_eks" {
   cluster_name    = "gitlab-prod-eks"
   gitlab_hostname = var.gitlab_domain
 
-  kubernetes_version = "1.30"
+  kubernetes_version = "1.36"
 
   eks_managed_node_groups = {
     general = {
