@@ -9,10 +9,10 @@ locals {
     var.tags
   )
 
-  vpc_id = var.create_vpc ? module.vpc[0].vpc_id : var.vpc_id
+  vpc_id = var.create_vpc ? aws_vpc.this[0].id : var.vpc_id
 
-  private_subnet_ids = var.create_vpc ? module.vpc[0].private_subnets : var.private_subnet_ids
-  public_subnet_ids  = var.create_vpc ? module.vpc[0].public_subnets : var.public_subnet_ids
+  private_subnet_ids = var.create_vpc ? aws_subnet.private[*].id : var.private_subnet_ids
+  public_subnet_ids  = var.create_vpc ? aws_subnet.public[*].id : var.public_subnet_ids
 
   s3_bucket_names = {
     artifacts        = coalesce(var.s3_buckets.artifacts, "${local.cluster_name}-gitlab-artifacts")
@@ -27,7 +27,7 @@ locals {
     tmp              = coalesce(var.s3_buckets.tmp, "${local.cluster_name}-gitlab-tmp")
   }
 
-  postgresql_secret_name = coalesce(var.postgresql_existing_secret_name, "${var.gitlab_release_name}-postgresql")
+  postgresql_secret_name     = coalesce(var.postgresql_existing_secret_name, "${var.gitlab_release_name}-postgresql")
   object_storage_secret_name = coalesce(var.s3_existing_secret_name, "${var.gitlab_release_name}-object-storage")
 
   create_postgresql_secret = var.postgresql_existing_secret_name == null && var.postgresql_password != null
@@ -44,11 +44,11 @@ locals {
 
   object_storage_connection_yaml = yamlencode(merge(
     {
-      provider         = "AWS"
-      region           = var.s3_region
-      use_iam_profile  = var.s3_use_iam_profile
+      provider              = "AWS"
+      region                = var.s3_region
+      use_iam_profile       = var.s3_use_iam_profile
       aws_signature_version = 4
-      path_style       = var.s3_force_path_style
+      path_style            = var.s3_force_path_style
     },
     var.s3_endpoint != null ? { endpoint = var.s3_endpoint } : {},
     var.s3_use_iam_profile ? {} : {
@@ -83,9 +83,9 @@ locals {
       }
 
       ingress = {
-        class                 = var.gitlab_ingress_class
-        configureCertmanager  = var.gitlab_configure_cert_manager
-        annotations           = var.gitlab_ingress_annotations
+        class                = var.gitlab_ingress_class
+        configureCertmanager = var.gitlab_configure_cert_manager
+        annotations          = var.gitlab_ingress_annotations
         tls = {
           enabled    = var.gitlab_tls_enabled
           secretName = var.gitlab_tls_secret_name
@@ -109,7 +109,7 @@ locals {
 
       appConfig = {
         object_store = {
-          enabled    = true
+          enabled = true
           connection = {
             secret = local.object_storage_secret_name
             key    = var.s3_existing_secret_key
@@ -145,7 +145,7 @@ locals {
           bucket  = local.s3_bucket_names.external_diffs
         }
         backups = {
-          bucket = local.s3_bucket_names.backups
+          bucket    = local.s3_bucket_names.backups
           tmpBucket = local.s3_bucket_names.tmp
         }
       }

@@ -5,6 +5,16 @@ check "existing_network_inputs" {
   }
 }
 
+check "created_network_inputs" {
+  assert {
+    condition = !var.create_vpc || (
+      length(var.azs) == length(var.private_subnet_cidrs) &&
+      length(var.azs) == length(var.public_subnet_cidrs)
+    )
+    error_message = "When create_vpc is true, azs, private_subnet_cidrs, and public_subnet_cidrs must have matching lengths."
+  }
+}
+
 check "postgresql_secret_or_password" {
   assert {
     condition     = var.postgresql_existing_secret_name != null || var.postgresql_password != null
