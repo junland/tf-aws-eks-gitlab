@@ -153,3 +153,17 @@ You can customize:
 - No local-only dependencies are required.
 - Secrets can be injected from external secret managers into Kubernetes secrets before `terraform apply`.
 - Module outputs expose cluster/release wiring needed by downstream automation.
+
+## Testing
+
+Native Terraform tests live in [`tests`](tests).
+
+- [`tests/basic.tftest.hcl`](tests/basic.tftest.hcl) verifies key input validation checks and secret-name derivation behavior.
+- The test suite uses mocked providers so it can run without live AWS, Kubernetes, or Helm credentials.
+
+Run the suite from the repository root:
+
+```bash
+terraform init
+terraform test
+```
