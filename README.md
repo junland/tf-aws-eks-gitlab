@@ -16,17 +16,17 @@ Reusable Terraform module that provisions a production-ready Amazon EKS cluster 
 
 All Terraform files use the required `_*.tf` naming convention:
 
-- [`_versions.tf`](/home/runner/work/tf-aws-eks-gitlab/tf-aws-eks-gitlab/_versions.tf)
-- [`_data.tf`](/home/runner/work/tf-aws-eks-gitlab/tf-aws-eks-gitlab/_data.tf)
-- [`_vpc.tf`](/home/runner/work/tf-aws-eks-gitlab/tf-aws-eks-gitlab/_vpc.tf)
-- [`_eks.tf`](/home/runner/work/tf-aws-eks-gitlab/tf-aws-eks-gitlab/_eks.tf)
-- [`_iam.tf`](/home/runner/work/tf-aws-eks-gitlab/tf-aws-eks-gitlab/_iam.tf)
-- [`_security_groups.tf`](/home/runner/work/tf-aws-eks-gitlab/tf-aws-eks-gitlab/_security_groups.tf)
-- [`_kubernetes.tf`](/home/runner/work/tf-aws-eks-gitlab/tf-aws-eks-gitlab/_kubernetes.tf)
-- [`_helm.tf`](/home/runner/work/tf-aws-eks-gitlab/tf-aws-eks-gitlab/_helm.tf)
-- [`_locals.tf`](/home/runner/work/tf-aws-eks-gitlab/tf-aws-eks-gitlab/_locals.tf)
-- [`_variables.tf`](/home/runner/work/tf-aws-eks-gitlab/tf-aws-eks-gitlab/_variables.tf)
-- [`_outputs.tf`](/home/runner/work/tf-aws-eks-gitlab/tf-aws-eks-gitlab/_outputs.tf)
+- [`_versions.tf`](_versions.tf)
+- [`_data.tf`](_data.tf)
+- [`_vpc.tf`](_vpc.tf)
+- [`_eks.tf`](_eks.tf)
+- [`_iam.tf`](_iam.tf)
+- [`_security_groups.tf`](_security_groups.tf)
+- [`_kubernetes.tf`](_kubernetes.tf)
+- [`_helm.tf`](_helm.tf)
+- [`_locals.tf`](_locals.tf)
+- [`_variables.tf`](_variables.tf)
+- [`_outputs.tf`](_outputs.tf)
 
 ## 1. AWS Prerequisites
 
@@ -84,11 +84,11 @@ And one of the secret strategies for each external dependency:
 - PostgreSQL: `postgresql_existing_secret_name` **or** `postgresql_password`
 - S3: `s3_existing_secret_name` **or** (`s3_use_iam_profile = true`) **or** (`s3_access_key` + `s3_secret_key`)
 
-See [`_variables.tf`](/home/runner/work/tf-aws-eks-gitlab/tf-aws-eks-gitlab/_variables.tf) for complete input definitions and defaults.
+See [`_variables.tf`](_variables.tf) for complete input definitions and defaults.
 
 ## 5. Example Usage
 
-A full example is provided in [`examples/basic`](/home/runner/work/tf-aws-eks-gitlab/tf-aws-eks-gitlab/examples/basic).
+A full example is provided in [`examples/basic`](examples/basic).
 
 ```hcl
 module "gitlab_eks" {

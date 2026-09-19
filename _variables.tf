@@ -465,20 +465,3 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
-
-validation {
-  condition     = var.create_vpc || (var.vpc_id != null && length(var.private_subnet_ids) > 0)
-  error_message = "When create_vpc is false, vpc_id and private_subnet_ids must be provided."
-}
-
-validation {
-  condition     = var.postgresql_existing_secret_name != null || var.postgresql_password != null
-  error_message = "Provide postgresql_existing_secret_name or postgresql_password."
-}
-
-validation {
-  condition = var.s3_existing_secret_name != null || var.s3_use_iam_profile || (
-    var.s3_access_key != null && var.s3_secret_key != null
-  )
-  error_message = "Provide s3_existing_secret_name, enable s3_use_iam_profile, or provide both s3_access_key and s3_secret_key."
-}
