@@ -9,10 +9,10 @@ locals {
     var.tags
   )
 
-  vpc_id = var.create_vpc ? module.vpc[0].vpc_id : var.vpc_id
+  vpc_id = var.create_vpc ? aws_vpc.this[0].id : var.vpc_id
 
-  private_subnet_ids = var.create_vpc ? module.vpc[0].private_subnets : var.private_subnet_ids
-  public_subnet_ids  = var.create_vpc ? module.vpc[0].public_subnets : var.public_subnet_ids
+  private_subnet_ids = var.create_vpc ? aws_subnet.private[*].id : var.private_subnet_ids
+  public_subnet_ids  = var.create_vpc ? aws_subnet.public[*].id : var.public_subnet_ids
 
   s3_bucket_names = {
     artifacts        = coalesce(var.s3_buckets.artifacts, "${local.cluster_name}-gitlab-artifacts")
