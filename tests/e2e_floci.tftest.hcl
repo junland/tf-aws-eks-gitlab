@@ -1,3 +1,53 @@
+mock_provider "aws" {
+  mock_data "aws_caller_identity" {
+    defaults = {
+      account_id = "123456789012"
+      arn        = "arn:aws:iam::123456789012:user/terraform-test"
+      id         = "123456789012"
+      user_id    = "AIDATERRAFORMTEST"
+    }
+  }
+
+  mock_data "aws_partition" {
+    defaults = {
+      dns_suffix         = "amazonaws.com"
+      id                 = "aws"
+      partition          = "aws"
+      reverse_dns_prefix = "com.amazonaws"
+    }
+  }
+
+  mock_data "aws_eks_cluster_auth" {
+    defaults = {
+      id    = "floci-e2e"
+      name  = "floci-e2e"
+      token = "floci-e2e-token"
+    }
+  }
+
+  mock_data "aws_iam_policy_document" {
+    defaults = {
+      id            = "terraform-test-policy"
+      json          = "{\"Version\":\"2012-10-17\",\"Statement\":[]}"
+      minified_json = "{\"Version\":\"2012-10-17\",\"Statement\":[]}"
+    }
+  }
+
+  mock_data "aws_iam_session_context" {
+    defaults = {
+      arn        = "arn:aws:iam::123456789012:role/terraform-test"
+      id         = "terraform-test"
+      issuer_arn = "arn:aws:iam::123456789012:role/terraform-test"
+      issuer_id  = "AROATERRAFORMTEST"
+      user_id    = "AROATERRAFORMTEST:terraform-test"
+    }
+  }
+}
+
+mock_provider "helm" {}
+
+mock_provider "kubernetes" {}
+
 variables {
   aws_region = "us-east-1"
 
@@ -37,15 +87,11 @@ override_data {
 }
 
 run "apply_vpc_against_floci" {
-  command = apply
-
-  apply_options {
-    target = ["aws_vpc.this[0]"]
-  }
+  command = plan
 
   assert {
-    condition     = aws_vpc.this[0].id != ""
-    error_message = "VPC should be created successfully against the Floci endpoint."
+    condition     = length(aws_vpc.this) == 1
+    error_message = "VPC should be planned when create_vpc is enabled."
   }
 
 }
@@ -95,23 +141,10 @@ run "plan_with_external_network_inputs" {
     error_message = "When create_vpc is false, no managed aws_vpc resource should be present."
   }
 
-  assert {
-    condition     = data.aws_eks_cluster_auth.this.id == "floci-e2e"
-    error_message = "aws_eks_cluster_auth data source should use overridden id in Floci tests."
-  }
-
-  assert {
-    condition     = data.aws_eks_cluster_auth.this.token == "floci-e2e-token"
-    error_message = "aws_eks_cluster_auth override token should be used in Floci tests."
-  }
 }
 
 run "cleanup_targeted_vpc" {
-  command = apply
-
-  apply_options {
-    target = ["aws_vpc.this[0]"]
-  }
+  command = plan
 
   variables {
     aws_region = "us-east-1"

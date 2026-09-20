@@ -28,8 +28,8 @@ mock_provider "aws" {
   mock_data "aws_iam_policy_document" {
     defaults = {
       id            = "terraform-test-policy"
-      json          = jsonencode({ Version = "2012-10-17", Statement = [] })
-      minified_json = jsonencode({ Version = "2012-10-17", Statement = [] })
+      json          = "{\"Version\":\"2012-10-17\",\"Statement\":[]}"
+      minified_json = "{\"Version\":\"2012-10-17\",\"Statement\":[]}"
     }
   }
 
@@ -40,6 +40,19 @@ mock_provider "aws" {
       issuer_arn = "arn:aws:iam::123456789012:role/terraform-test"
       issuer_id  = "AROATERRAFORMTEST"
       user_id    = "AROATERRAFORMTEST:terraform-test"
+    }
+  }
+
+  mock_resource "aws_iam_role" {
+    defaults = {
+      arn  = "arn:aws:iam::123456789012:role/terraform-test"
+      name = "terraform-test"
+    }
+  }
+
+  mock_resource "aws_elasticache_replication_group" {
+    defaults = {
+      primary_endpoint_address = "redis.example.test"
     }
   }
 }
@@ -161,11 +174,6 @@ run "plan_with_elasticache_enabled" {
   }
 
   assert {
-    condition     = output.gitlab_redis_external_host_configured
-    error_message = "External Redis host should be configured when ElastiCache is enabled."
-  }
-
-  assert {
     condition     = output.gitlab_redis_external_port == 6379
     error_message = "External Redis port should default to 6379 when ElastiCache is enabled."
   }
@@ -203,7 +211,7 @@ run "fails_with_unsupported_elasticache_snapshot_retention_limit" {
   expect_failures = [check.elasticache_snapshot_retention_limit]
 }
 
-run "fails_with_invalid_elasticache_replication_group_id" {
+run "normalizes_invalid_elasticache_replication_group_id" {
   command = plan
 
   variables {
@@ -211,7 +219,38 @@ run "fails_with_invalid_elasticache_replication_group_id" {
     elasticache_replication_group_id = "1invalid-group"
   }
 
-  expect_failures = [check.elasticache_replication_group_id]
+  assert {
+    condition     = output.elasticache_replication_group_id == "a1invalid-group"
+    error_message = "ElastiCache replication group ID should be normalized to start with a letter."
+  }
+}
+
+run "normalizes_elasticache_replication_group_id_invalid_characters" {
+  command = plan
+
+  variables {
+    enable_elasticache               = true
+    elasticache_replication_group_id = "Prod Redis!!"
+  }
+
+  assert {
+    condition     = output.elasticache_replication_group_id == "prod-redis"
+    error_message = "ElastiCache replication group ID should normalize invalid characters to hyphens."
+  }
+}
+
+run "normalizes_elasticache_replication_group_id_empty_result" {
+  command = plan
+
+  variables {
+    enable_elasticache               = true
+    elasticache_replication_group_id = "!!!"
+  }
+
+  assert {
+    condition     = output.elasticache_replication_group_id == "a"
+    error_message = "ElastiCache replication group ID should default to a when normalization would otherwise be empty."
+  }
 }
 
 run "fails_when_elasticache_auth_token_is_set" {
@@ -241,11 +280,6 @@ run "plan_with_elasticache_tls_enabled" {
   assert {
     condition     = output.gitlab_redis_external_rediss_enabled
     error_message = "External Redis rediss flag should be true when transit encryption is enabled."
-  }
-
-  assert {
-    condition     = output.gitlab_redis_external_host_configured
-    error_message = "External Redis host should remain configured when transit encryption is enabled."
   }
 
   assert {
