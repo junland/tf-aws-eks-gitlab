@@ -21,10 +21,14 @@ Run a local Floci instance and test the module's VPC resource against its AWS-co
 
 ```bash
 docker compose -f docker-compose.floci.yml up -d
-AWS_ENDPOINT_URL_EC2=http://127.0.0.1:4566 AWS_ENDPOINT_URL_STS=http://127.0.0.1:4566 terraform test tests/e2e_floci.tftest.hcl
+bash tests/run-floci.sh
 docker compose -f docker-compose.floci.yml down
 ```
 
-You can also run `bash tests/run-floci.sh`, which performs the same `terraform test` command after checking Floci health and setting endpoint environment variables.
+`bash tests/run-floci.sh` checks Floci health, sets the required AWS/endpoint environment variables, and then runs:
+
+```bash
+terraform test tests/e2e_floci.tftest.hcl
+```
 
 The smoke test uses `e2e_floci.tftest.hcl`, creates and destroys only `aws_vpc.this[0]`, and intentionally does not apply the EKS, Kubernetes, or Helm resources because Floci does not provide a Kubernetes control plane.
