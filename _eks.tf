@@ -128,8 +128,8 @@ resource "aws_eks_addon" "this" {
   addon_version               = lookup(each.value, "addon_version", null)
   configuration_values        = lookup(each.value, "configuration_values", null)
   preserve                    = lookup(each.value, "preserve", null)
-  resolve_conflicts_on_create = lookup(each.value, "resolve_conflicts_on_create", null)
-  resolve_conflicts_on_update = lookup(each.value, "resolve_conflicts_on_update", null)
+  resolve_conflicts_on_create = lookup(each.value, "resolve_conflicts_on_create", lookup(each.value, "resolve_conflicts", null))
+  resolve_conflicts_on_update = lookup(each.value, "resolve_conflicts_on_update", lookup(each.value, "resolve_conflicts", null))
   service_account_role_arn    = lookup(each.value, "service_account_role_arn", null)
 
   tags = local.tags
