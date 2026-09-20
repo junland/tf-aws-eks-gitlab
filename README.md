@@ -143,7 +143,7 @@ Key inputs:
 - `elasticache_engine_version`
 - `elasticache_replica_count` (default `1`, enables failover/Multi-AZ behavior)
 - `elasticache_subnet_group_name` (optional reuse)
-- `elasticache_security_group_ids` (optional additional groups)
+- `elasticache_security_group_ids` (optional additional groups attached alongside module-managed ElastiCache security group)
 - `elasticache_allowed_cidrs` (optional additional ingress CIDRs)
 - `elasticache_transit_encryption_enabled` (switches GitLab Redis connection to TLS/`rediss` and port `6380`)
 

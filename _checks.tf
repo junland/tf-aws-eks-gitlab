@@ -51,6 +51,6 @@ check "elasticache_replication_group_id" {
       "^[a-z](?:[a-z0-9-]{0,38}[a-z0-9])?$",
       local.elasticache_replication_group_id
     ))
-    error_message = "ElastiCache replication group ID must start with a letter and contain only lowercase letters, digits, and hyphens."
+    error_message = "ElastiCache replication group ID must be 1-40 characters, start with a letter, and contain only lowercase letters, digits, and hyphens."
   }
 }

@@ -479,7 +479,7 @@ variable "elasticache_subnet_group_name" {
 }
 
 variable "elasticache_security_group_ids" {
-  description = "Additional security group IDs attached to ElastiCache"
+  description = "Additional security group IDs attached to ElastiCache alongside the module-managed security group"
   type        = list(string)
   default     = []
 }
