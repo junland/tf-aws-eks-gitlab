@@ -59,7 +59,7 @@ run "apply_vpc_against_floci" {
   }
 }
 
-run "destroy_targeted_vpc" {
+run "plan_with_external_network_inputs" {
   command = plan
 
   variables {
@@ -96,11 +96,11 @@ run "destroy_targeted_vpc" {
 
   assert {
     condition     = output.vpc_id == "vpc-cleanup-placeholder"
-    error_message = "Cleanup run should switch to provided external network inputs."
+    error_message = "Plan run should switch to provided external network inputs."
   }
 
   assert {
     condition     = length(aws_vpc.this) == 0
-    error_message = "Targeted VPC resource should be removed during cleanup run."
+    error_message = "When create_vpc is false, no managed aws_vpc resource should be present."
   }
 }

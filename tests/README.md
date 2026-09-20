@@ -3,7 +3,7 @@
 This directory contains native Terraform test cases for the module.
 
 - `basic.tftest.hcl` covers input validation failures and derived secret-name behavior.
-- `e2e_floci.tftest.hcl` applies and destroys only `aws_vpc.this[0]` against a local Floci endpoint.
+- `e2e_floci.tftest.hcl` applies only `aws_vpc.this[0]` against a local Floci endpoint, then validates the `create_vpc = false` plan path.
 - The tests use mocked providers so they can run without live AWS, Kubernetes, or Helm credentials.
 
 Run the suite from the repository root:
