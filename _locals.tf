@@ -59,14 +59,20 @@ locals {
 
   manage_irsa_role = var.create_irsa_role && var.gitlab_irsa_role_arn == null
 
-  elasticache_replication_group_id = substr(
-    trim(
-      regexreplace(
-        lower(coalesce(var.elasticache_replication_group_id, "${local.cluster_name}-gitlab-redis")),
-        "[^a-z0-9-]",
-        "-"
-      ),
+  elasticache_replication_group_id_sanitized = trim(
+    replace(
+      lower(coalesce(var.elasticache_replication_group_id, "${local.cluster_name}-gitlab-redis")),
+      "/[^a-z0-9-]/",
       "-"
+    ),
+    "-"
+  )
+
+  elasticache_replication_group_id = substr(
+    local.elasticache_replication_group_id_sanitized == "" ? "a" : (
+      length(regexall("^[a-z]", local.elasticache_replication_group_id_sanitized)) > 0 ?
+      local.elasticache_replication_group_id_sanitized :
+      "a${local.elasticache_replication_group_id_sanitized}"
     ),
     0,
     40
@@ -182,7 +188,15 @@ locals {
         auth = {
           enabled = false
         }
-      } : {}
+      } : {
+        host   = null
+        port   = null
+        scheme = null
+        rediss = null
+        auth = {
+          enabled = null
+        }
+      }
     }
 
     postgresql = {
