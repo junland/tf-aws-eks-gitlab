@@ -1,213 +1,185 @@
 # Terraform AWS EKS GitLab Module
 
-Reusable Terraform module that provisions a production-ready Amazon EKS cluster and deploys GitLab with the official GitLab Helm chart.
+[![Terraform Version](https://img.shields.io/badge/Terraform-%3E%3D1.3.0-623CE4?logo=terraform)](https://www.terraform.io/)
+[![AWS Provider](https://img.shields.io/badge/AWS-Provider-FF9900?logo=amazon-aws)](https://registry.terraform.io/providers/hashicorp/aws/latest)
+[![Helm Provider](https://img.shields.io/badge/Helm-Provider-0F1689?logo=helm)](https://registry.terraform.io/providers/hashicorp/helm/latest)
+
+A production-ready Terraform module that provisions an Amazon EKS cluster and deploys GitLab using the official `gitlab/gitlab` Helm chart, integrated with external state and storage services.
+
+---
 
 ## Features
 
-- Provisions EKS with configurable Kubernetes version, node groups, networking, and cluster settings.
-- Supports managed VPC creation or existing VPC/subnets.
-- Deploys GitLab through Terraform Helm provider and official `gitlab/gitlab` chart.
-- Uses external PostgreSQL and S3-compatible object storage (no database/object-storage infrastructure provisioned by this module).
-- Supports Kubernetes secret references for PostgreSQL and object-storage credentials.
-- Supports IAM-based object storage authentication with IRSA.
-- Supports optional AWS ElastiCache Redis provisioning and GitLab Redis wiring.
-- Includes production-oriented defaults and customization inputs for ingress, TLS, scaling, and chart behavior.
+- **Elastic Kubernetes Service (EKS)**: Configurable Kubernetes version, managed node groups, custom cluster networking, and IAM roles.
+- **Flexible VPC Networking**: Provisions a new managed VPC with public/private subnets or integrates with existing AWS network infrastructure.
+- **Official GitLab Helm Chart**: Deploys GitLab using the official Helm provider and chart (`https://charts.gitlab.io`).
+- **External Database & Object Storage**: Offloads state to external PostgreSQL and S3-compatible storage for high availability and scalability.
+- **Secure Secret Management**: Integrates with pre-existing Kubernetes Secrets or provisions them securely via Terraform inputs.
+- **AWS IRSA Integration**: Supports IAM Roles for Service Accounts (IRSA) for native, keyless AWS S3 authentication.
+- **Optional ElastiCache Redis**: Optional automated provisioning of Amazon ElastiCache Redis with automatic GitLab connection wiring.
+- **Production-Oriented**: Includes customizable defaults for ingress, TLS/cert-manager, autoscaling, and custom Helm value overrides.
 
-## Module Structure
+---
 
-All Terraform files use the required `_*.tf` naming convention:
+## Module Architecture & File Structure
 
-- [`_versions.tf`](_versions.tf)
-- [`_data.tf`](_data.tf)
-- [`_vpc.tf`](_vpc.tf)
-- [`_eks.tf`](_eks.tf)
-- [`_iam.tf`](_iam.tf)
-- [`_security_groups.tf`](_security_groups.tf)
-- [`_elasticache.tf`](_elasticache.tf)
-- [`_kubernetes.tf`](_kubernetes.tf)
-- [`_helm.tf`](_helm.tf)
-- [`_locals.tf`](_locals.tf)
-- [`_variables.tf`](_variables.tf)
-- [`_outputs.tf`](_outputs.tf)
+This module follows standard Terraform practices with standard `_*.tf` file naming conventions:
 
-## 1. AWS Prerequisites
+```text
+├── _versions.tf        # Terraform & provider version constraints
+├── _data.tf            # AWS & Kubernetes data sources
+├── _locals.tf          # Local variables & secret logic evaluation
+├── _variables.tf       # Input variable definitions & validations
+├── _outputs.tf         # Module output definitions
+├── _vpc.tf             # AWS VPC, subnet, and routing resources
+├── _eks.tf             # EKS Cluster & managed node group definitions
+├── _iam.tf             # IAM roles, policies, and IRSA configuration
+├── _security_groups.tf # Security group rules for EKS & ElastiCache
+├── _elasticache.tf     # AWS ElastiCache Redis replication group
+├── _kubernetes.tf      # Kubernetes namespaces, secrets, and configs
+└── _helm.tf            # Helm release definition for GitLab
+```
 
-- AWS account and IAM permissions for EKS, VPC, IAM, EC2, and related dependencies.
-- Route53/DNS setup for your GitLab domain.
-- SSL/TLS certificates (or cert-manager integration if enabled).
-- Terraform runner with network access to AWS APIs.
-- For IAM-based object-storage access: IRSA enabled with policy permitting access to GitLab buckets.
+---
 
-## 2. PostgreSQL Prerequisites
+## Prerequisites
 
-Provide an externally managed PostgreSQL database (for example Amazon RDS/Aurora or self-managed PostgreSQL) with:
+| Category | Requirement | Description |
+| :--- | :--- | :--- |
+| **AWS** | IAM Permissions | Access to manage EKS, VPC, IAM, EC2, ElastiCache, and Route53. |
+| | DNS & TLS | Route53 domain delegation and active SSL/TLS certificates (or `cert-manager`). |
+| | Object Storage | S3 buckets configured with optional IRSA IAM policy access. |
+| **PostgreSQL** | External DB | Managed instance (e.g., AWS RDS/Aurora or self-hosted) with port `5432` accessible from EKS nodes. |
+| **Tools** | CLI Utilities | `terraform` $\ge$ 1.3.0, `aws-cli`, and network access to AWS APIs. |
 
-- Hostname
-- Port (default `5432`)
-- Database name
-- Username
-- Password via Kubernetes Secret or sensitive Terraform input
+---
 
-Module behavior:
+## External Dependencies Setup
 
-- `postgresql_existing_secret_name` + `postgresql_existing_secret_key` can reference an existing secret.
-- If `postgresql_password` is provided and no existing secret name is set, this module creates a secret in the GitLab namespace.
+### 1. External PostgreSQL
+The module expects an existing PostgreSQL database instance.
 
-## 3. S3 Prerequisites
+* **Secret Strategies**:
+  * **Option A (Preferred)**: Provide an existing Kubernetes Secret name via `postgresql_existing_secret_name` and key via `postgresql_existing_secret_key`.
+  * **Option B**: Pass `postgresql_password` directly to allow the module to provision the Kubernetes Secret in the target namespace.
 
-Provide externally managed S3-compatible object storage and buckets. This module does **not** create object storage resources.
+### 2. External S3 Object Storage
+GitLab relies on S3-compatible object storage for artifacts, uploads, LFS, backups, etc.
 
-Required inputs:
+* **Authentication Strategies**:
+  * **IAM Roles for Service Accounts (IRSA)**: Set `s3_use_iam_profile = true` (Recommended for AWS S3).
+  * **Existing Secret**: Provide `s3_existing_secret_name` containing object storage connection configuration.
+  * **Static Credentials**: Pass `s3_access_key` and `s3_secret_key` for direct creation of the storage secret.
 
-- Endpoint (optional for AWS S3, required for non-AWS compatible endpoints)
-- Region
-- Bucket names (`s3_buckets`)
-- Authentication method:
-  - IAM-based (`s3_use_iam_profile = true`, optionally with IRSA), or
-  - Access key/secret key via existing secret or sensitive Terraform inputs.
+---
 
-Module behavior:
-
-- `s3_existing_secret_name` + `s3_existing_secret_key` can reference an existing secret with GitLab object-store connection YAML.
-- If existing secret is not provided, module can create one from sensitive inputs.
-
-## 4. Required Terraform Variables
-
-Core required variables:
-
-- `gitlab_hostname`
-- `postgresql_host`
-- `postgresql_database`
-- `postgresql_username`
-- `s3_region`
-
-And one of the secret strategies for each external dependency:
-
-- PostgreSQL: `postgresql_existing_secret_name` **or** `postgresql_password`
-- S3: `s3_existing_secret_name` **or** (`s3_use_iam_profile = true`) **or** (`s3_access_key` + `s3_secret_key`)
-
-See [`_variables.tf`](_variables.tf) for complete input definitions and defaults.
-
-## 5. Example Usage
-
-A full example is provided in [`examples/basic`](examples/basic).
+## Quickstart & Usage
 
 ```hcl
 module "gitlab_eks" {
-  source = "../../"
+  source = "git::https://github.com/your-org/terraform-aws-eks-gitlab.git?ref=v1.0.0"
 
   aws_region      = "us-east-1"
   name_prefix     = "gitlab-prod"
   gitlab_hostname = "gitlab.example.com"
 
+  # PostgreSQL Configuration
   postgresql_host                 = "gitlab-db.example.internal"
   postgresql_database             = "gitlabhq_production"
   postgresql_username             = "gitlab"
-  postgresql_existing_secret_name = "gitlab-postgres"
+  postgresql_existing_secret_name = "gitlab-postgres-credentials"
 
+  # S3 Configuration
   s3_region               = "us-east-1"
-  s3_existing_secret_name = "gitlab-object-storage"
+  s3_use_iam_profile      = true
+  s3_existing_secret_name = "gitlab-object-storage-config"
+
+  # Optional Helm Value Overrides
+  gitlab_extra_values = {
+    "global.workhorse.serviceType" = "ClusterIP"
+  }
 }
 ```
 
-## 6. GitLab Deployment and Configuration
+---
 
-GitLab is deployed using `helm_release` from the Helm provider against the EKS cluster.
+## Configuration Reference
 
-The module configures:
+### Key Input Variables
 
-- Official GitLab chart repository (`https://charts.gitlab.io`)
-- External PostgreSQL (`postgresql.install = false`)
-- External object storage (`minio.enabled = false`, object-store connection secret)
-- Configurable ingress/TLS/service annotations
-- Optional bundled components (`nginx-ingress`, `certmanager`, `prometheus`, `gitlab-runner`)
-- Scaling controls for key components (`webservice`, `sidekiq`)
+| Variable | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `gitlab_hostname` | `string` | *Required* | Primary domain name for the GitLab instance. |
+| `postgresql_host` | `string` | *Required* | Endpoint address for the external PostgreSQL database. |
+| `postgresql_database` | `string` | *Required* | Name of the PostgreSQL database. |
+| `postgresql_username` | `string` | *Required* | Username for PostgreSQL authentication. |
+| `s3_region` | `string` | *Required* | AWS region where the S3 buckets reside. |
+| `create_vpc` | `bool` | `true` | Set to `false` to deploy EKS inside an existing VPC. |
+| `enable_elasticache` | `bool` | `false` | Provisions an AWS ElastiCache Redis cluster and wires it to GitLab. |
+| `s3_use_iam_profile` | `bool` | `false` | Enables IRSA for AWS S3 authentication without static access keys. |
 
-Additional chart overrides can be passed with `gitlab_extra_values`.
+---
 
-## 7. Optional ElastiCache Redis
+## ElastiCache Redis Integration
 
-Set `enable_elasticache = true` to provision an ElastiCache Redis replication group and configure GitLab to use it as external Redis.
+Setting `enable_elasticache = true` automates the provisioning of Amazon ElastiCache Redis and overrides the bundled Helm chart Redis (`redis.install = false`).
 
-Module behavior when enabled:
+### Current Capabilities & Constraints
 
-- Creates (or reuses) an ElastiCache subnet group
-- Creates a dedicated ElastiCache security group and allows Redis access from EKS node security group
-- Configures GitLab chart `global.redis.host`/`port`
-- Disables bundled chart Redis (`redis.install = false`)
+> [!IMPORTANT]
+> - **Authentication**: Unauthenticated ElastiCache mode only (`elasticache_auth_token` must remain `null`).
+> - **Topology**: Single-node instance (replication and auto-failover groups are not currently supported).
+> - **Transit Encryption**: Enable `elasticache_transit_encryption_enabled = true` to switch GitLab Redis connections to `rediss://` TLS mode.
 
-Current limitation:
+---
 
-- This module supports unauthenticated ElastiCache Redis only (`elasticache_auth_token` must remain `null`)
-- This module provisions a single-node ElastiCache topology (no replica/failover configuration)
-- This module supports `elasticache_snapshot_retention_limit = 0` only for the current topology
+## Security & Secret Management
 
-Key inputs:
+1. **State Safety**: Supplying raw credentials via Terraform variables (`postgresql_password`, `s3_secret_key`) stores sensitive values in the unencrypted Terraform state file.
+2. **Recommended Practice**: Pre-create Kubernetes Secrets in the target namespace or populate them via AWS Secrets Manager / External Secrets Operator, referencing them using `postgresql_existing_secret_name` and `s3_existing_secret_name`.
+3. **Least Privilege**: Use `s3_use_iam_profile = true` to eliminate static S3 credentials completely via AWS IAM IRSA.
 
-- `enable_elasticache`
-- `elasticache_node_type`
-- `elasticache_engine_version`
-- `elasticache_subnet_group_name` (optional reuse)
-- `elasticache_security_group_ids` (optional additional groups attached alongside module-managed ElastiCache security group)
-- `elasticache_allowed_cidrs` (optional additional ingress CIDRs)
-- `elasticache_transit_encryption_enabled` (switches GitLab Redis connection to TLS/`rediss` while using the configured Redis listener port)
-- `elasticache_auth_token` (must remain `null`; authenticated ElastiCache is not currently supported)
+---
 
-## 8. Secret Handling
+## CI/CD Pipeline Execution
 
-Sensitive values are intended to be provided by pre-created Kubernetes secrets whenever possible.
+This module is designed for non-interactive execution inside automated CI/CD pipelines (e.g., GitLab CI, GitHub Actions, Terraform Cloud):
 
-Supported patterns:
+- Zero prompt or interactive inputs required.
+- Fully compatible with remote backends (S3 + DynamoDB state locking).
+- Secret variables can be injected directly from CI/CD masked environment variables or secret vaults.
 
-1. **Preferred**: pass existing secret references (`postgresql_existing_secret_name`, `s3_existing_secret_name`).
-2. **Alternative**: pass sensitive Terraform variables (`postgresql_password`, `s3_access_key`, `s3_secret_key`) and let module create Kubernetes secrets.
-3. **IAM-based object storage**: use `s3_use_iam_profile = true` and map IAM permissions via IRSA role.
+---
 
-> Note: Terraform state may still contain sensitive values when raw credentials are provided as variable inputs.
+## Testing & Validation
 
-## 9. Customization
+### Unit Testing
 
-You can customize:
-
-- Cluster sizing and scaling via `eks_managed_node_groups`
-- Kubernetes version via `kubernetes_version`
-- Network model via `create_vpc`, existing `vpc_id`, and subnet inputs
-- Load balancer exposure via `gitlab_ingress_cidrs`, service/ingress annotations
-- TLS/cert-manager behavior via `gitlab_tls_*` and `gitlab_configure_cert_manager`
-- GitLab chart behavior with `gitlab_extra_values`
-- IAM integration via `create_irsa_role`, `gitlab_irsa_role_arn`, and `irsa_policy_json`
-- Redis backing service via `enable_elasticache` and `elasticache_*` inputs
-
-## 10. CI/CD Suitability
-
-- All settings are variable-driven for non-interactive pipeline execution.
-- No local-only dependencies are required.
-- Secrets can be injected from external secret managers into Kubernetes secrets before `terraform apply`.
-- Module outputs expose cluster/release wiring needed by downstream automation.
-
-## 11. Testing
-
-Native Terraform tests live in [`tests`](tests).
-
-- [`tests/basic.tftest.hcl`](tests/basic.tftest.hcl) verifies key input validation checks and secret-name derivation behavior.
-- The test suite uses mocked providers so it can run without live AWS, Kubernetes, or Helm credentials.
-
-Run the suite from the repository root:
+Run unit tests using native Terraform testing frameworks with mocked providers (no live cloud deployment needed):
 
 ```bash
 terraform init
 terraform test
 ```
 
-For a local AWS endpoint integration smoke test with Floci:
+* `tests/basic.tftest.hcl`: Validates input parsing, local logic, conditional evaluations, and secret name resolution.
+
+### Local Integration Testing (Floci)
+
+To execute a local integration smoke test validating VPC network setup:
 
 ```bash
+# Spin up local AWS emulator environment
 docker compose -f docker-compose.floci.yml up -d
+
+# Execute integration suite
 bash tests/run-floci.sh
+
+# Tear down local testing environment
 docker compose -f docker-compose.floci.yml down
 ```
 
-The Floci test creates and destroys the module VPC only. EKS, Kubernetes, and Helm resources require a Kubernetes control plane and remain covered by the mocked Terraform tests.
+---
 
 ## Terraform Docs
 
@@ -403,3 +375,7 @@ No modules.
 | <a name="output_public_subnet_ids"></a> [public\_subnet\_ids](#output\_public\_subnet\_ids) | Public subnet IDs used by the cluster |
 | <a name="output_vpc_id"></a> [vpc\_id](#output\_vpc\_id) | VPC ID used by the cluster |
 <!-- END_TF_DOCS -->
+
+## License
+
+Designed and maintained for production deployment workflows. Distributed under the **BSD License**.
