@@ -1,0 +1,14 @@
+{
+  "name": "Terraform AWS EKS GitLab",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  "features": {
+    "ghcr.io/devcontainers/features/terraform:1": {},
+    "ghcr.io/devcontainers/features/aws-cli:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {
+      "installKubectl": true,
+      "installHelm": true,
+      "installMinikube": false
+    }
+  }
+}
