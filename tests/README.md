@@ -28,6 +28,7 @@ docker compose -f docker-compose.floci.yml down
 `bash tests/run-floci.sh` checks Floci health, sets the required AWS/endpoint environment variables, and then runs:
 
 ```bash
+terraform init -backend=false -input=false
 terraform test tests/e2e_floci.tftest.hcl
 ```
 

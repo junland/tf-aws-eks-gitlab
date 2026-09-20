@@ -16,4 +16,5 @@ export AWS_ENDPOINT_URL_STS="$floci_endpoint"
 
 curl --fail --silent --show-error "$floci_endpoint/health" >/dev/null
 
+"$terraform_bin" -chdir="$repo_root" init -backend=false -input=false
 "$terraform_bin" -chdir="$repo_root" test tests/e2e_floci.tftest.hcl
