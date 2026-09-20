@@ -172,7 +172,7 @@ For a local AWS endpoint integration smoke test with Floci:
 
 ```bash
 docker compose -f docker-compose.floci.yml up -d
-bash tests/run-floci.sh
+AWS_ENDPOINT_URL_EC2=http://127.0.0.1:4566 AWS_ENDPOINT_URL_STS=http://127.0.0.1:4566 terraform test tests/e2e_floci.tftest.hcl
 docker compose -f docker-compose.floci.yml down
 ```
 

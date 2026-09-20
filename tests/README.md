@@ -3,6 +3,7 @@
 This directory contains native Terraform test cases for the module.
 
 - `basic.tftest.hcl` covers input validation failures and derived secret-name behavior.
+- `e2e_floci.tftest.hcl` applies and destroys only `aws_vpc.this[0]` against a local Floci endpoint.
 - The tests use mocked providers so they can run without live AWS, Kubernetes, or Helm credentials.
 
 Run the suite from the repository root:
@@ -20,8 +21,10 @@ Run a local Floci instance and test the module's VPC resource against its AWS-co
 
 ```bash
 docker compose -f docker-compose.floci.yml up -d
-bash tests/run-floci.sh
+AWS_ENDPOINT_URL_EC2=http://127.0.0.1:4566 AWS_ENDPOINT_URL_STS=http://127.0.0.1:4566 terraform test tests/e2e_floci.tftest.hcl
 docker compose -f docker-compose.floci.yml down
 ```
 
-The smoke test uses `e2e_floci.hcl`, creates and destroys only `aws_vpc.this[0]`, and keeps Terraform state in a temporary directory. It intentionally does not apply the EKS, Kubernetes, or Helm resources because Floci does not provide a Kubernetes control plane.
+You can also run `bash tests/run-floci.sh`, which performs the same `terraform test` command after checking Floci health and setting endpoint environment variables.
+
+The smoke test uses `e2e_floci.tftest.hcl`, creates and destroys only `aws_vpc.this[0]`, and intentionally does not apply the EKS, Kubernetes, or Helm resources because Floci does not provide a Kubernetes control plane.
