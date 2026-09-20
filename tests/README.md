@@ -32,4 +32,4 @@ terraform init -backend=false -input=false
 terraform test -input=false tests/e2e_floci.tftest.hcl
 ```
 
-The smoke test uses `e2e_floci.tftest.hcl`, applies only `aws_vpc.this[0]`, and relies on Terraform test's test-run cleanup for created resources. It intentionally does not apply the EKS, Kubernetes, or Helm resources because Floci does not provide a Kubernetes control plane.
+The smoke test uses `e2e_floci.tftest.hcl`, applies only `aws_vpc.this[0]`, and includes a follow-up apply run that switches to external network inputs so the targeted VPC is destroyed within the test flow. It intentionally does not apply the EKS, Kubernetes, or Helm resources because Floci does not provide a Kubernetes control plane.
