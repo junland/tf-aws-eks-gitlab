@@ -52,3 +52,13 @@ output "object_storage_secret_name" {
   description = "Kubernetes secret name for object storage connection"
   value       = local.object_storage_secret_name
 }
+
+output "elasticache_replication_group_id" {
+  description = "ElastiCache replication group ID when enabled"
+  value       = var.enable_elasticache ? local.elasticache_replication_group_id : null
+}
+
+output "elasticache_primary_endpoint_address" {
+  description = "Primary endpoint address for ElastiCache Redis when enabled"
+  value       = var.enable_elasticache ? aws_elasticache_replication_group.gitlab[0].primary_endpoint_address : null
+}

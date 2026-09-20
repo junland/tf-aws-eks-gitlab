@@ -50,19 +50,19 @@ mock_provider "kubernetes" {}
 
 # Common global variables set across test runs
 variables {
-  cluster_name                     = "unit-eks"
-  create_vpc                       = false
-  deploy_gitlab                    = false
-  vpc_id                           = "vpc-12345678"
-  private_subnet_ids               = ["subnet-11111111", "subnet-22222222"]
-  public_subnet_ids                = ["subnet-33333333", "subnet-44444444"]
-  gitlab_hostname                  = "gitlab.example.com"
-  postgresql_host                  = "postgres.example.internal"
-  postgresql_database              = "gitlabhq_production"
-  postgresql_username              = "gitlab"
-  postgresql_existing_secret_name  = "gitlab-postgres"
-  s3_region                        = "us-east-1"
-  s3_existing_secret_name          = "gitlab-object-storage"
+  cluster_name                    = "unit-eks"
+  create_vpc                      = false
+  deploy_gitlab                   = false
+  vpc_id                          = "vpc-12345678"
+  private_subnet_ids              = ["subnet-11111111", "subnet-22222222"]
+  public_subnet_ids               = ["subnet-33333333", "subnet-44444444"]
+  gitlab_hostname                 = "gitlab.example.com"
+  postgresql_host                 = "postgres.example.internal"
+  postgresql_database             = "gitlabhq_production"
+  postgresql_username             = "gitlab"
+  postgresql_existing_secret_name = "gitlab-postgres"
+  s3_region                       = "us-east-1"
+  s3_existing_secret_name         = "gitlab-object-storage"
 }
 
 run "plan_with_existing_network_and_secrets" {
@@ -90,9 +90,9 @@ run "plan_derives_secret_names_from_release_name" {
   variables {
     gitlab_release_name             = "gitlab-prod"
     postgresql_existing_secret_name = null
-    postgresql_password            = "placeholder-password"
-    s3_existing_secret_name        = null
-    s3_use_iam_profile             = true
+    postgresql_password             = "placeholder-password"
+    s3_existing_secret_name         = null
+    s3_use_iam_profile              = true
   }
 
   assert {
@@ -136,4 +136,28 @@ run "fails_without_s3_authentication" {
   }
 
   expect_failures = [check.s3_authentication_inputs]
+}
+
+run "plan_with_elasticache_enabled" {
+  command = plan
+
+  variables {
+    enable_elasticache = true
+  }
+
+  assert {
+    condition     = output.elasticache_replication_group_id == "unit-eks-gitlab-redis"
+    error_message = "The ElastiCache replication group ID should default from the cluster name."
+  }
+}
+
+run "fails_with_invalid_elasticache_cluster_count" {
+  command = plan
+
+  variables {
+    enable_elasticache             = true
+    elasticache_num_cache_clusters = 0
+  }
+
+  expect_failures = [check.elasticache_cluster_count]
 }

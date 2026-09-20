@@ -30,3 +30,27 @@ check "s3_authentication_inputs" {
     error_message = "Provide s3_existing_secret_name, enable s3_use_iam_profile, or provide both s3_access_key and s3_secret_key."
   }
 }
+
+check "elasticache_cluster_count" {
+  assert {
+    condition     = !var.enable_elasticache || var.elasticache_num_cache_clusters >= 1
+    error_message = "When enable_elasticache is true, elasticache_num_cache_clusters must be at least 1."
+  }
+}
+
+check "elasticache_snapshot_retention_limit" {
+  assert {
+    condition     = !var.enable_elasticache || var.elasticache_snapshot_retention_limit >= 0
+    error_message = "When enable_elasticache is true, elasticache_snapshot_retention_limit must be 0 or greater."
+  }
+}
+
+check "elasticache_replication_group_id" {
+  assert {
+    condition = !var.enable_elasticache || can(regex(
+      "^[a-z][a-z0-9-]{0,39}$",
+      local.elasticache_replication_group_id
+    ))
+    error_message = "ElastiCache replication group ID must start with a letter and contain only lowercase letters, digits, and hyphens."
+  }
+}
