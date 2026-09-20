@@ -136,6 +136,10 @@ Module behavior when enabled:
 - Configures GitLab chart `global.redis.host`/`port`
 - Disables bundled chart Redis (`redis.install = false`)
 
+Current limitation:
+
+- This module supports unauthenticated ElastiCache Redis only (`elasticache_auth_token` must remain `null`)
+
 Key inputs:
 
 - `enable_elasticache`
@@ -146,6 +150,7 @@ Key inputs:
 - `elasticache_security_group_ids` (optional additional groups attached alongside module-managed ElastiCache security group)
 - `elasticache_allowed_cidrs` (optional additional ingress CIDRs)
 - `elasticache_transit_encryption_enabled` (switches GitLab Redis connection to TLS/`rediss` and port `6380`)
+- `elasticache_auth_token` (must remain `null`; authenticated ElastiCache is not currently supported)
 
 ## 8. Secret Handling
 

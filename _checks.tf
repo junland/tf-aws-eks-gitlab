@@ -57,3 +57,10 @@ check "elasticache_replication_group_id" {
     error_message = "ElastiCache replication group ID must be 1-40 characters, start with a letter, and contain only lowercase letters, digits, and hyphens."
   }
 }
+
+check "elasticache_auth_token_unsupported" {
+  assert {
+    condition     = !var.enable_elasticache || var.elasticache_auth_token == null
+    error_message = "This module currently supports unauthenticated ElastiCache Redis only; set elasticache_auth_token to null."
+  }
+}

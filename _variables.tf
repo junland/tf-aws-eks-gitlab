@@ -502,6 +502,13 @@ variable "elasticache_transit_encryption_enabled" {
   default     = false
 }
 
+variable "elasticache_auth_token" {
+  description = "Auth token for ElastiCache Redis (currently unsupported by this module and must remain null)"
+  type        = string
+  sensitive   = true
+  default     = null
+}
+
 variable "elasticache_apply_immediately" {
   description = "Apply ElastiCache modifications immediately"
   type        = bool

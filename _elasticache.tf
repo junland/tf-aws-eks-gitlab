@@ -57,7 +57,8 @@ resource "aws_elasticache_replication_group" "gitlab" {
   engine                     = "redis"
   engine_version             = var.elasticache_engine_version
   node_type                  = var.elasticache_node_type
-  num_cache_clusters         = var.elasticache_replica_count + 1
+  num_node_groups            = 1
+  replicas_per_node_group    = var.elasticache_replica_count
   port                       = local.elasticache_connection_port
   parameter_group_name       = var.elasticache_parameter_group_name
   subnet_group_name          = local.elasticache_subnet_group_name

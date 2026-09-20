@@ -63,6 +63,11 @@ output "elasticache_primary_endpoint_address" {
   value       = var.enable_elasticache ? aws_elasticache_replication_group.gitlab[0].primary_endpoint_address : null
 }
 
+output "elasticache_transit_encryption_enabled" {
+  description = "Whether ElastiCache transit encryption is enabled"
+  value       = var.enable_elasticache ? aws_elasticache_replication_group.gitlab[0].transit_encryption_enabled : null
+}
+
 output "gitlab_redis_chart_install" {
   description = "Whether bundled Redis remains enabled in the GitLab chart values"
   value       = local.gitlab_helm_values.redis.install

@@ -216,4 +216,9 @@ run "plan_with_elasticache_tls_enabled" {
     condition     = output.gitlab_redis_external_port == 6380
     error_message = "External Redis port should switch to 6380 when transit encryption is enabled."
   }
+
+  assert {
+    condition     = output.elasticache_transit_encryption_enabled
+    error_message = "ElastiCache replication group transit encryption should be enabled when requested."
+  }
 }
