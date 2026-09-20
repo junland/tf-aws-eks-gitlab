@@ -52,4 +52,9 @@ run "apply_vpc_against_floci" {
     condition     = data.aws_eks_cluster_auth.this.name == "floci-e2e"
     error_message = "aws_eks_cluster_auth data source should use overridden values in Floci tests."
   }
+
+  assert {
+    condition     = data.aws_eks_cluster_auth.this.token == "floci-e2e-token"
+    error_message = "aws_eks_cluster_auth override token should be used in Floci tests."
+  }
 }
