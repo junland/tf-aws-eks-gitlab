@@ -3,7 +3,7 @@
 This directory contains native Terraform test cases for the module.
 
 - `basic.tftest.hcl` covers input validation failures and derived secret-name behavior.
-- `e2e_floci.tftest.hcl` applies only `aws_vpc.this[0]` against a local Floci endpoint, then validates the `create_vpc = false` plan path.
+- `e2e_floci.tftest.hcl` applies only `aws_vpc.this[0]` against a local Floci endpoint, validates the `create_vpc = false` plan path, and includes a targeted cleanup apply run.
 - The tests use mocked providers so they can run without live AWS, Kubernetes, or Helm credentials.
 
 Run the suite from the repository root:
@@ -32,4 +32,4 @@ terraform init -backend=false -input=false
 terraform test -input=false tests/e2e_floci.tftest.hcl
 ```
 
-The smoke test uses `e2e_floci.tftest.hcl`, applies only `aws_vpc.this[0]`, and includes a follow-up full plan run with external-network inputs to validate the configuration path where `create_vpc = false`. It intentionally does not apply the EKS, Kubernetes, or Helm resources because Floci does not provide a Kubernetes control plane.
+The smoke test uses `e2e_floci.tftest.hcl`, applies only `aws_vpc.this[0]`, includes a follow-up full plan run with external-network inputs to validate the configuration path where `create_vpc = false`, and then runs a targeted cleanup apply to remove the managed VPC resource. It intentionally does not apply the EKS, Kubernetes, or Helm resources because Floci does not provide a Kubernetes control plane.
