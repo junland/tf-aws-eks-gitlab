@@ -141,7 +141,7 @@ Key inputs:
 - `enable_elasticache`
 - `elasticache_node_type`
 - `elasticache_engine_version`
-- `elasticache_replica_count` (default `1`, enables failover/Multi-AZ behavior)
+- `elasticache_replica_count` (supported values `0` or `1`; default `1` enables failover/Multi-AZ behavior)
 - `elasticache_subnet_group_name` (optional reuse)
 - `elasticache_security_group_ids` (optional additional groups attached alongside module-managed ElastiCache security group)
 - `elasticache_allowed_cidrs` (optional additional ingress CIDRs)

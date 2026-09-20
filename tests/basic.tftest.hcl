@@ -178,6 +178,17 @@ run "fails_with_invalid_elasticache_replica_count" {
   expect_failures = [check.elasticache_replica_count]
 }
 
+run "fails_with_unsupported_elasticache_replica_count" {
+  command = plan
+
+  variables {
+    enable_elasticache        = true
+    elasticache_replica_count = 2
+  }
+
+  expect_failures = [check.elasticache_replica_count]
+}
+
 run "plan_with_elasticache_tls_enabled" {
   command = plan
 

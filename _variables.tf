@@ -461,7 +461,7 @@ variable "elasticache_port" {
 }
 
 variable "elasticache_replica_count" {
-  description = "Number of read replicas for the ElastiCache replication group"
+  description = "Number of read replicas for the ElastiCache replication group (supported values: 0 or 1)"
   type        = number
   default     = 1
 }
