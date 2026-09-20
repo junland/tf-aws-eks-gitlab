@@ -48,7 +48,7 @@ check "elasticache_snapshot_retention_limit" {
 check "elasticache_replication_group_id" {
   assert {
     condition = !var.enable_elasticache || can(regex(
-      "^[a-z][a-z0-9-]{0,39}$",
+      "^[a-z](?:[a-z0-9-]{0,38}[a-z0-9])?$",
       local.elasticache_replication_group_id
     ))
     error_message = "ElastiCache replication group ID must start with a letter and contain only lowercase letters, digits, and hyphens."

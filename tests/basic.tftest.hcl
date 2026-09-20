@@ -149,6 +149,21 @@ run "plan_with_elasticache_enabled" {
     condition     = output.elasticache_replication_group_id == "unit-eks-gitlab-redis"
     error_message = "The ElastiCache replication group ID should default from the cluster name."
   }
+
+  assert {
+    condition     = output.gitlab_redis_chart_install == false
+    error_message = "Bundled Redis should be disabled when ElastiCache is enabled."
+  }
+
+  assert {
+    condition     = output.gitlab_redis_external_host_configured
+    error_message = "External Redis host should be configured when ElastiCache is enabled."
+  }
+
+  assert {
+    condition     = output.gitlab_redis_external_port == 6379
+    error_message = "External Redis port should default to 6379 when ElastiCache is enabled."
+  }
 }
 
 run "fails_with_invalid_elasticache_cluster_count" {

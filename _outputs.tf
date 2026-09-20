@@ -62,3 +62,18 @@ output "elasticache_primary_endpoint_address" {
   description = "Primary endpoint address for ElastiCache Redis when enabled"
   value       = var.enable_elasticache ? aws_elasticache_replication_group.gitlab[0].primary_endpoint_address : null
 }
+
+output "gitlab_redis_chart_install" {
+  description = "Whether bundled Redis remains enabled in the GitLab chart values"
+  value       = local.gitlab_helm_values.redis.install
+}
+
+output "gitlab_redis_external_host_configured" {
+  description = "Whether external Redis host is configured in GitLab chart values"
+  value       = can(local.gitlab_helm_values.global.redis.host)
+}
+
+output "gitlab_redis_external_port" {
+  description = "Configured external Redis port in GitLab chart values"
+  value       = try(local.gitlab_helm_values.global.redis.port, null)
+}
