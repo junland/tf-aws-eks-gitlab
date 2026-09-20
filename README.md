@@ -140,6 +140,7 @@ Current limitation:
 
 - This module supports unauthenticated ElastiCache Redis only (`elasticache_auth_token` must remain `null`)
 - This module provisions a single-node ElastiCache topology (no replica/failover configuration)
+- This module supports `elasticache_snapshot_retention_limit = 0` only for the current topology
 
 Key inputs:
 

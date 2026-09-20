@@ -516,7 +516,7 @@ variable "elasticache_maintenance_window" {
 }
 
 variable "elasticache_snapshot_retention_limit" {
-  description = "Number of days to retain ElastiCache snapshots"
+  description = "Number of days to retain ElastiCache snapshots (currently only 0 is supported)"
   type        = number
   default     = 0
 }

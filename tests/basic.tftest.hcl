@@ -192,6 +192,17 @@ run "fails_with_invalid_elasticache_snapshot_retention_limit" {
   expect_failures = [check.elasticache_snapshot_retention_limit]
 }
 
+run "fails_with_unsupported_elasticache_snapshot_retention_limit" {
+  command = plan
+
+  variables {
+    enable_elasticache                   = true
+    elasticache_snapshot_retention_limit = 1
+  }
+
+  expect_failures = [check.elasticache_snapshot_retention_limit]
+}
+
 run "fails_with_invalid_elasticache_replication_group_id" {
   command = plan
 

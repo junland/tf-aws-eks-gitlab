@@ -33,8 +33,8 @@ check "s3_authentication_inputs" {
 
 check "elasticache_snapshot_retention_limit" {
   assert {
-    condition     = !var.enable_elasticache || var.elasticache_snapshot_retention_limit >= 0
-    error_message = "When enable_elasticache is true, elasticache_snapshot_retention_limit must be 0 or greater."
+    condition     = !var.enable_elasticache || var.elasticache_snapshot_retention_limit == 0
+    error_message = "When enable_elasticache is true, elasticache_snapshot_retention_limit must be 0 for the currently supported single-node topology."
   }
 }
 
