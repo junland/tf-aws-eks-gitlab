@@ -6,18 +6,18 @@ data "aws_iam_policy_document" "gitlab_irsa_assume_role" {
 
     principals {
       type        = "Federated"
-      identifiers = [module.eks.oidc_provider_arn]
+      identifiers = [aws_iam_openid_connect_provider.this.arn]
     }
 
     condition {
       test     = "StringEquals"
-      variable = "${replace(module.eks.oidc_provider, "https://", "")}:aud"
+      variable = "${replace(aws_iam_openid_connect_provider.this.url, "https://", "")}:aud"
       values   = ["sts.amazonaws.com"]
     }
 
     condition {
       test     = "StringLike"
-      variable = "${replace(module.eks.oidc_provider, "https://", "")}:sub"
+      variable = "${replace(aws_iam_openid_connect_provider.this.url, "https://", "")}:sub"
       values   = ["system:serviceaccount:${var.gitlab_namespace}:*"]
     }
   }

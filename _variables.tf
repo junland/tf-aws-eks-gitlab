@@ -119,7 +119,7 @@ variable "one_nat_gateway_per_az" {
 }
 
 variable "eks_managed_node_groups" {
-  description = "Managed node group configuration passed to terraform-aws-eks module"
+  description = "Managed node group configuration used to create aws_eks_node_group resources"
   type        = any
   default = {
     default = {
@@ -135,7 +135,7 @@ variable "eks_managed_node_groups" {
 }
 
 variable "cluster_addons" {
-  description = "EKS cluster add-ons"
+  description = "EKS cluster add-ons used to create aws_eks_addon resources"
   type        = any
   default = {
     coredns                = {}

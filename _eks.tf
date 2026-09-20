@@ -1,23 +1,144 @@
-module "eks" {
-  source  = "terraform-aws-modules/eks/aws"
-  version = "~> 20.0"
+data "aws_iam_policy_document" "eks_cluster_assume_role" {
+  statement {
+    actions = ["sts:AssumeRole"]
 
-  cluster_name                             = local.cluster_name
-  cluster_version                          = var.kubernetes_version
-  cluster_endpoint_public_access           = var.cluster_endpoint_public_access
-  cluster_endpoint_private_access          = var.cluster_endpoint_private_access
-  cluster_enabled_log_types                = var.cluster_enabled_log_types
-  cluster_service_ipv4_cidr                = var.cluster_service_ipv4_cidr
-  enable_cluster_creator_admin_permissions = var.enable_cluster_creator_admin_permissions
+    principals {
+      type        = "Service"
+      identifiers = ["eks.amazonaws.com"]
+    }
+  }
+}
 
-  vpc_id                   = local.vpc_id
-  subnet_ids               = local.private_subnet_ids
-  control_plane_subnet_ids = local.private_subnet_ids
+resource "aws_iam_role" "eks_cluster" {
+  name               = "${local.cluster_name}-cluster-role"
+  assume_role_policy = data.aws_iam_policy_document.eks_cluster_assume_role.json
+  tags               = local.tags
+}
 
-  enable_irsa = true
+resource "aws_iam_role_policy_attachment" "eks_cluster" {
+  for_each = toset([
+    "arn:${data.aws_partition.current.partition}:iam::aws:policy/AmazonEKSClusterPolicy",
+    "arn:${data.aws_partition.current.partition}:iam::aws:policy/AmazonEKSServicePolicy"
+  ])
 
-  eks_managed_node_groups = var.eks_managed_node_groups
-  cluster_addons          = var.cluster_addons
+  role       = aws_iam_role.eks_cluster.name
+  policy_arn = each.value
+}
+
+data "aws_iam_policy_document" "eks_node_group_assume_role" {
+  statement {
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["ec2.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "eks_node_group" {
+  name               = "${local.cluster_name}-node-group-role"
+  assume_role_policy = data.aws_iam_policy_document.eks_node_group_assume_role.json
+  tags               = local.tags
+}
+
+resource "aws_iam_role_policy_attachment" "eks_node_group" {
+  for_each = toset([
+    "arn:${data.aws_partition.current.partition}:iam::aws:policy/AmazonEKSWorkerNodePolicy",
+    "arn:${data.aws_partition.current.partition}:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly",
+    "arn:${data.aws_partition.current.partition}:iam::aws:policy/AmazonEKS_CNI_Policy"
+  ])
+
+  role       = aws_iam_role.eks_node_group.name
+  policy_arn = each.value
+}
+
+resource "aws_eks_cluster" "this" {
+  name     = local.cluster_name
+  role_arn = aws_iam_role.eks_cluster.arn
+  version  = var.kubernetes_version
+
+  enabled_cluster_log_types = var.cluster_enabled_log_types
+
+  vpc_config {
+    subnet_ids              = local.private_subnet_ids
+    endpoint_public_access  = var.cluster_endpoint_public_access
+    endpoint_private_access = var.cluster_endpoint_private_access
+  }
+
+  access_config {
+    bootstrap_cluster_creator_admin_permissions = var.enable_cluster_creator_admin_permissions
+  }
+
+  dynamic "kubernetes_network_config" {
+    for_each = var.cluster_service_ipv4_cidr != null ? [var.cluster_service_ipv4_cidr] : []
+
+    content {
+      service_ipv4_cidr = kubernetes_network_config.value
+    }
+  }
+
+  tags = local.tags
+
+  depends_on = [aws_iam_role_policy_attachment.eks_cluster]
+}
+
+resource "aws_eks_node_group" "this" {
+  for_each = var.eks_managed_node_groups
+
+  cluster_name    = aws_eks_cluster.this.name
+  node_group_name = each.key
+  node_role_arn   = aws_iam_role.eks_node_group.arn
+  subnet_ids      = local.private_subnet_ids
+
+  ami_type       = lookup(each.value, "ami_type", null)
+  capacity_type  = lookup(each.value, "capacity_type", null)
+  disk_size      = lookup(each.value, "disk_size", null)
+  instance_types = lookup(each.value, "instance_types", null)
+  labels         = lookup(each.value, "labels", null)
+  release_version = lookup(each.value, "release_version", null)
+  version         = lookup(each.value, "version", null)
+
+  scaling_config {
+    min_size     = lookup(each.value, "min_size", 1)
+    desired_size = lookup(each.value, "desired_size", lookup(each.value, "min_size", 1))
+    max_size     = lookup(each.value, "max_size", lookup(each.value, "desired_size", 1))
+  }
+
+  dynamic "update_config" {
+    for_each = lookup(each.value, "max_unavailable", null) != null || lookup(each.value, "max_unavailable_percentage", null) != null ? [each.value] : []
+
+    content {
+      max_unavailable            = lookup(update_config.value, "max_unavailable", null)
+      max_unavailable_percentage = lookup(update_config.value, "max_unavailable_percentage", null)
+    }
+  }
+
+  tags = local.tags
+
+  depends_on = [aws_iam_role_policy_attachment.eks_node_group]
+}
+
+resource "aws_eks_addon" "this" {
+  for_each = var.cluster_addons
+
+  cluster_name = aws_eks_cluster.this.name
+  addon_name   = each.key
+
+  addon_version               = lookup(each.value, "addon_version", null)
+  configuration_values        = lookup(each.value, "configuration_values", null)
+  preserve                    = lookup(each.value, "preserve", null)
+  resolve_conflicts_on_create = lookup(each.value, "resolve_conflicts_on_create", null)
+  resolve_conflicts_on_update = lookup(each.value, "resolve_conflicts_on_update", null)
+  service_account_role_arn    = lookup(each.value, "service_account_role_arn", null)
+
+  tags = local.tags
+}
+
+resource "aws_iam_openid_connect_provider" "this" {
+  client_id_list = ["sts.amazonaws.com"]
+  thumbprint_list = ["9e99a48a9960b14926bb7f3b02e22da0afd29e"]
+  url             = aws_eks_cluster.this.identity[0].oidc[0].issuer
 
   tags = local.tags
 }
