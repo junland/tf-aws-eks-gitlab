@@ -58,3 +58,30 @@ run "apply_vpc_against_floci" {
     error_message = "aws_eks_cluster_auth override token should be used in Floci tests."
   }
 }
+
+run "destroy_targeted_vpc" {
+  command = apply
+
+  apply_options {
+    target = [aws_vpc.this[0]]
+  }
+
+  variables {
+    create_vpc          = false
+    vpc_id              = "vpc-cleanup-placeholder"
+    private_subnet_ids  = ["subnet-cleanup-private"]
+    public_subnet_ids   = ["subnet-cleanup-public"]
+    deploy_gitlab       = false
+    create_irsa_role    = false
+    gitlab_hostname     = "gitlab.example.test"
+    postgresql_host     = "postgres.example.test"
+    postgresql_database = "gitlabhq_production"
+    postgresql_username = "gitlab"
+    s3_region           = "us-east-1"
+  }
+
+  assert {
+    condition     = output.vpc_id == "vpc-cleanup-placeholder"
+    error_message = "Cleanup run should switch to provided external network inputs."
+  }
+}
