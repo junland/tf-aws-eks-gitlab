@@ -119,8 +119,21 @@ variable "one_nat_gateway_per_az" {
 }
 
 variable "eks_managed_node_groups" {
-  description = "Managed node group configuration passed to terraform-aws-eks module"
-  type        = any
+  description = "Managed node group configuration used to create aws_eks_node_group resources"
+  type = map(object({
+    instance_types             = optional(list(string))
+    ami_type                   = optional(string)
+    min_size                   = optional(number)
+    desired_size               = optional(number)
+    max_size                   = optional(number)
+    capacity_type              = optional(string)
+    disk_size                  = optional(number)
+    labels                     = optional(map(string))
+    release_version            = optional(string)
+    version                    = optional(string)
+    max_unavailable            = optional(number)
+    max_unavailable_percentage = optional(number)
+  }))
   default = {
     default = {
       instance_types = ["m6i.large"]
@@ -135,8 +148,16 @@ variable "eks_managed_node_groups" {
 }
 
 variable "cluster_addons" {
-  description = "EKS cluster add-ons"
-  type        = any
+  description = "EKS cluster add-ons used to create aws_eks_addon resources"
+  type = map(object({
+    addon_version               = optional(string)
+    configuration_values        = optional(string)
+    preserve                    = optional(bool)
+    resolve_conflicts           = optional(string)
+    resolve_conflicts_on_create = optional(string)
+    resolve_conflicts_on_update = optional(string)
+    service_account_role_arn    = optional(string)
+  }))
   default = {
     coredns                = {}
     kube-proxy             = {}
