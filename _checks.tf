@@ -51,7 +51,27 @@ check "eks_managed_node_group_supported_fields" {
         ], key)
       ])
     ])
-    error_message = "eks_managed_node_groups contains unsupported keys for the native aws_eks_node_group implementation."
+    error_message = format(
+      "eks_managed_node_groups contains unsupported keys for the native aws_eks_node_group implementation: %s",
+      join(", ", flatten([
+        for node_group_name, node_group in var.eks_managed_node_groups : [
+          for key in keys(node_group) : "${node_group_name}.${key}" if !contains([
+            "ami_type",
+            "capacity_type",
+            "disk_size",
+            "instance_types",
+            "labels",
+            "release_version",
+            "version",
+            "min_size",
+            "desired_size",
+            "max_size",
+            "max_unavailable",
+            "max_unavailable_percentage"
+          ], key)
+        ]
+      ]))
+    )
   }
 }
 
@@ -69,6 +89,20 @@ check "cluster_addons_supported_fields" {
         ], key)
       ])
     ])
-    error_message = "cluster_addons contains unsupported keys for the native aws_eks_addon implementation."
+    error_message = format(
+      "cluster_addons contains unsupported keys for the native aws_eks_addon implementation: %s",
+      join(", ", flatten([
+        for addon_name, addon in var.cluster_addons : [
+          for key in keys(addon) : "${addon_name}.${key}" if !contains([
+            "addon_version",
+            "configuration_values",
+            "preserve",
+            "resolve_conflicts_on_create",
+            "resolve_conflicts_on_update",
+            "service_account_role_arn"
+          ], key)
+        ]
+      ]))
+    )
   }
 }
