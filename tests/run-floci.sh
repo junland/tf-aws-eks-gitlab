@@ -24,4 +24,4 @@ export AWS_ENDPOINT_URL_STS="$floci_endpoint"
 curl --fail --silent --show-error "$floci_endpoint/health" >/dev/null
 
 TF_DATA_DIR="$work_dir/.terraform" "$terraform_bin" -chdir="$repo_root" init -backend=false -input=false
-TF_DATA_DIR="$work_dir/.terraform" "$terraform_bin" -chdir="$repo_root" test tests/e2e_floci.tftest.hcl
+TF_DATA_DIR="$work_dir/.terraform" "$terraform_bin" -chdir="$repo_root" test -input=false tests/e2e_floci.tftest.hcl
