@@ -142,8 +142,7 @@ run "plan_with_elasticache_enabled" {
   command = plan
 
   variables {
-    enable_elasticache        = true
-    elasticache_replica_count = 1
+    enable_elasticache = true
   }
 
   assert {
@@ -183,7 +182,7 @@ run "fails_with_unsupported_elasticache_replica_count" {
 
   variables {
     enable_elasticache        = true
-    elasticache_replica_count = 2
+    elasticache_replica_count = 1
   }
 
   expect_failures = [check.elasticache_replica_count]

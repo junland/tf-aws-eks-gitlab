@@ -40,11 +40,8 @@ check "elasticache_snapshot_retention_limit" {
 
 check "elasticache_replica_count" {
   assert {
-    condition = !var.enable_elasticache || (
-      var.elasticache_replica_count >= 0 &&
-      var.elasticache_replica_count <= 1
-    )
-    error_message = "When enable_elasticache is true, elasticache_replica_count must be 0 or 1."
+    condition     = !var.enable_elasticache || var.elasticache_replica_count == 0
+    error_message = "When enable_elasticache is true, elasticache_replica_count must be 0 for the currently supported topology."
   }
 }
 
