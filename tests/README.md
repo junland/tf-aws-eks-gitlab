@@ -17,6 +17,27 @@ terraform test
 
 ## Floci integration smoke test
 
+### External dependency setup (PostgreSQL + S3-compatible storage)
+
+Use the setup assets in `tests/setup/` to pre-provision local integration dependencies:
+
+```bash
+bash tests/setup/provision.sh
+```
+
+This provisions:
+
+- PostgreSQL on `127.0.0.1:5432` (`gitlab` / `gitlab`, db `gitlabhq_production`)
+- MinIO (S3-compatible) on `127.0.0.1:9000` with pre-created `floci-e2e-*` buckets
+
+When done:
+
+```bash
+bash tests/setup/teardown.sh
+```
+
+### Floci emulator smoke run
+
 Run a local Floci instance and test the module's VPC resource against its AWS-compatible endpoint:
 
 ```bash
