@@ -10,6 +10,7 @@ Reusable Terraform module that provisions a production-ready Amazon EKS cluster 
 - Uses external PostgreSQL and S3-compatible object storage (no database/object-storage infrastructure provisioned by this module).
 - Supports Kubernetes secret references for PostgreSQL and object-storage credentials.
 - Supports IAM-based object storage authentication with IRSA.
+- Supports optional AWS ElastiCache Redis provisioning and GitLab Redis wiring.
 - Includes production-oriented defaults and customization inputs for ingress, TLS, scaling, and chart behavior.
 
 ## Module Structure
@@ -22,6 +23,7 @@ All Terraform files use the required `_*.tf` naming convention:
 - [`_eks.tf`](_eks.tf)
 - [`_iam.tf`](_iam.tf)
 - [`_security_groups.tf`](_security_groups.tf)
+- [`_elasticache.tf`](_elasticache.tf)
 - [`_kubernetes.tf`](_kubernetes.tf)
 - [`_helm.tf`](_helm.tf)
 - [`_locals.tf`](_locals.tf)
@@ -123,7 +125,35 @@ The module configures:
 
 Additional chart overrides can be passed with `gitlab_extra_values`.
 
-## 7. Secret Handling
+## 7. Optional ElastiCache Redis
+
+Set `enable_elasticache = true` to provision an ElastiCache Redis replication group and configure GitLab to use it as external Redis.
+
+Module behavior when enabled:
+
+- Creates (or reuses) an ElastiCache subnet group
+- Creates a dedicated ElastiCache security group and allows Redis access from EKS node security group
+- Configures GitLab chart `global.redis.host`/`port`
+- Disables bundled chart Redis (`redis.install = false`)
+
+Current limitation:
+
+- This module supports unauthenticated ElastiCache Redis only (`elasticache_auth_token` must remain `null`)
+- This module provisions a single-node ElastiCache topology (no replica/failover configuration)
+- This module supports `elasticache_snapshot_retention_limit = 0` only for the current topology
+
+Key inputs:
+
+- `enable_elasticache`
+- `elasticache_node_type`
+- `elasticache_engine_version`
+- `elasticache_subnet_group_name` (optional reuse)
+- `elasticache_security_group_ids` (optional additional groups attached alongside module-managed ElastiCache security group)
+- `elasticache_allowed_cidrs` (optional additional ingress CIDRs)
+- `elasticache_transit_encryption_enabled` (switches GitLab Redis connection to TLS/`rediss` while using the configured Redis listener port)
+- `elasticache_auth_token` (must remain `null`; authenticated ElastiCache is not currently supported)
+
+## 8. Secret Handling
 
 Sensitive values are intended to be provided by pre-created Kubernetes secrets whenever possible.
 
@@ -135,7 +165,7 @@ Supported patterns:
 
 > Note: Terraform state may still contain sensitive values when raw credentials are provided as variable inputs.
 
-## 8. Customization
+## 9. Customization
 
 You can customize:
 
@@ -146,15 +176,16 @@ You can customize:
 - TLS/cert-manager behavior via `gitlab_tls_*` and `gitlab_configure_cert_manager`
 - GitLab chart behavior with `gitlab_extra_values`
 - IAM integration via `create_irsa_role`, `gitlab_irsa_role_arn`, and `irsa_policy_json`
+- Redis backing service via `enable_elasticache` and `elasticache_*` inputs
 
-## CI/CD Suitability
+## 10. CI/CD Suitability
 
 - All settings are variable-driven for non-interactive pipeline execution.
 - No local-only dependencies are required.
 - Secrets can be injected from external secret managers into Kubernetes secrets before `terraform apply`.
 - Module outputs expose cluster/release wiring needed by downstream automation.
 
-## Testing
+## 11. Testing
 
 Native Terraform tests live in [`tests`](tests).
 

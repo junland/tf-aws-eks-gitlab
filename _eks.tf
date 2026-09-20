@@ -36,11 +36,11 @@ resource "aws_eks_node_group" "this" {
   node_role_arn   = aws_iam_role.eks_node_group.arn
   subnet_ids      = local.private_subnet_ids
 
-  ami_type       = lookup(each.value, "ami_type", null)
-  capacity_type  = lookup(each.value, "capacity_type", null)
-  disk_size      = lookup(each.value, "disk_size", null)
-  instance_types = lookup(each.value, "instance_types", null)
-  labels         = lookup(each.value, "labels", null)
+  ami_type        = lookup(each.value, "ami_type", null)
+  capacity_type   = lookup(each.value, "capacity_type", null)
+  disk_size       = lookup(each.value, "disk_size", null)
+  instance_types  = lookup(each.value, "instance_types", null)
+  labels          = lookup(each.value, "labels", null)
   release_version = lookup(each.value, "release_version", null)
   version         = lookup(each.value, "version", null)
 

@@ -50,19 +50,19 @@ mock_provider "kubernetes" {}
 
 # Common global variables set across test runs
 variables {
-  cluster_name                     = "unit-eks"
-  create_vpc                       = false
-  deploy_gitlab                    = false
-  vpc_id                           = "vpc-12345678"
-  private_subnet_ids               = ["subnet-11111111", "subnet-22222222"]
-  public_subnet_ids                = ["subnet-33333333", "subnet-44444444"]
-  gitlab_hostname                  = "gitlab.example.com"
-  postgresql_host                  = "postgres.example.internal"
-  postgresql_database              = "gitlabhq_production"
-  postgresql_username              = "gitlab"
-  postgresql_existing_secret_name  = "gitlab-postgres"
-  s3_region                        = "us-east-1"
-  s3_existing_secret_name          = "gitlab-object-storage"
+  cluster_name                    = "unit-eks"
+  create_vpc                      = false
+  deploy_gitlab                   = false
+  vpc_id                          = "vpc-12345678"
+  private_subnet_ids              = ["subnet-11111111", "subnet-22222222"]
+  public_subnet_ids               = ["subnet-33333333", "subnet-44444444"]
+  gitlab_hostname                 = "gitlab.example.com"
+  postgresql_host                 = "postgres.example.internal"
+  postgresql_database             = "gitlabhq_production"
+  postgresql_username             = "gitlab"
+  postgresql_existing_secret_name = "gitlab-postgres"
+  s3_region                       = "us-east-1"
+  s3_existing_secret_name         = "gitlab-object-storage"
 }
 
 run "plan_with_existing_network_and_secrets" {
@@ -82,6 +82,11 @@ run "plan_with_existing_network_and_secrets" {
     condition     = output.object_storage_secret_name == "gitlab-object-storage"
     error_message = "The module should reuse the provided object storage secret name."
   }
+
+  assert {
+    condition     = output.gitlab_redis_external_host_configured == false
+    error_message = "External Redis host should be unset when ElastiCache is disabled."
+  }
 }
 
 run "plan_derives_secret_names_from_release_name" {
@@ -90,9 +95,9 @@ run "plan_derives_secret_names_from_release_name" {
   variables {
     gitlab_release_name             = "gitlab-prod"
     postgresql_existing_secret_name = null
-    postgresql_password            = "placeholder-password"
-    s3_existing_secret_name        = null
-    s3_use_iam_profile             = true
+    postgresql_password             = "placeholder-password"
+    s3_existing_secret_name         = null
+    s3_use_iam_profile              = true
   }
 
   assert {
@@ -136,4 +141,125 @@ run "fails_without_s3_authentication" {
   }
 
   expect_failures = [check.s3_authentication_inputs]
+}
+
+run "plan_with_elasticache_enabled" {
+  command = plan
+
+  variables {
+    enable_elasticache = true
+  }
+
+  assert {
+    condition     = output.elasticache_replication_group_id == "unit-eks-gitlab-redis"
+    error_message = "The ElastiCache replication group ID should default from the cluster name."
+  }
+
+  assert {
+    condition     = output.gitlab_redis_chart_install == false
+    error_message = "Bundled Redis should be disabled when ElastiCache is enabled."
+  }
+
+  assert {
+    condition     = output.gitlab_redis_external_host_configured
+    error_message = "External Redis host should be configured when ElastiCache is enabled."
+  }
+
+  assert {
+    condition     = output.gitlab_redis_external_port == 6379
+    error_message = "External Redis port should default to 6379 when ElastiCache is enabled."
+  }
+
+  assert {
+    condition     = output.gitlab_redis_external_scheme == "redis"
+    error_message = "External Redis scheme should default to redis when transit encryption is disabled."
+  }
+
+  assert {
+    condition     = output.gitlab_redis_auth_enabled == false
+    error_message = "Redis auth should be disabled for unauthenticated ElastiCache mode."
+  }
+}
+
+run "fails_with_invalid_elasticache_snapshot_retention_limit" {
+  command = plan
+
+  variables {
+    enable_elasticache                   = true
+    elasticache_snapshot_retention_limit = -1
+  }
+
+  expect_failures = [check.elasticache_snapshot_retention_limit]
+}
+
+run "fails_with_unsupported_elasticache_snapshot_retention_limit" {
+  command = plan
+
+  variables {
+    enable_elasticache                   = true
+    elasticache_snapshot_retention_limit = 1
+  }
+
+  expect_failures = [check.elasticache_snapshot_retention_limit]
+}
+
+run "fails_with_invalid_elasticache_replication_group_id" {
+  command = plan
+
+  variables {
+    enable_elasticache               = true
+    elasticache_replication_group_id = "1invalid-group"
+  }
+
+  expect_failures = [check.elasticache_replication_group_id]
+}
+
+run "fails_when_elasticache_auth_token_is_set" {
+  command = plan
+
+  variables {
+    enable_elasticache     = true
+    elasticache_auth_token = "placeholder-token"
+  }
+
+  expect_failures = [check.elasticache_auth_token_unsupported]
+}
+
+run "plan_with_elasticache_tls_enabled" {
+  command = plan
+
+  variables {
+    enable_elasticache                     = true
+    elasticache_transit_encryption_enabled = true
+  }
+
+  assert {
+    condition     = output.gitlab_redis_external_scheme == "rediss"
+    error_message = "External Redis scheme should be rediss when transit encryption is enabled."
+  }
+
+  assert {
+    condition     = output.gitlab_redis_external_rediss_enabled
+    error_message = "External Redis rediss flag should be true when transit encryption is enabled."
+  }
+
+  assert {
+    condition     = output.gitlab_redis_external_host_configured
+    error_message = "External Redis host should remain configured when transit encryption is enabled."
+  }
+
+  assert {
+    condition     = output.gitlab_redis_external_port == 6379
+    error_message = "External Redis port should remain on the configured ElastiCache listener port."
+  }
+
+  assert {
+    condition     = output.elasticache_transit_encryption_enabled
+    error_message = "ElastiCache replication group transit encryption should be enabled when requested."
+  }
+
+  assert {
+    condition     = output.gitlab_redis_auth_enabled == false
+    error_message = "Redis auth should remain disabled when ElastiCache TLS mode is enabled."
+  }
 }

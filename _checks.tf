@@ -108,3 +108,24 @@ check "cluster_addons_supported_fields" {
     )
   }
 }
+
+check "elasticache_snapshot_retention_limit" {
+  assert {
+    condition     = !var.enable_elasticache || var.elasticache_snapshot_retention_limit == 0
+    error_message = "When enable_elasticache is true, elasticache_snapshot_retention_limit must be 0 for the currently supported single-node topology."
+  }
+}
+
+check "elasticache_replication_group_id" {
+  assert {
+    condition     = !var.enable_elasticache || length(regexall("^[a-z](?:[a-z0-9-]{0,38}[a-z0-9])?$", local.elasticache_replication_group_id)) > 0
+    error_message = "ElastiCache replication group ID is normalized to 1-40 lowercase letters, digits, and hyphens, must start with a letter, and must not end with a hyphen."
+  }
+}
+
+check "elasticache_auth_token_unsupported" {
+  assert {
+    condition     = !var.enable_elasticache || var.elasticache_auth_token == null
+    error_message = "This module currently supports unauthenticated ElastiCache Redis only; set elasticache_auth_token to null."
+  }
+}

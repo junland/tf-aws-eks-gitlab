@@ -52,3 +52,48 @@ output "object_storage_secret_name" {
   description = "Kubernetes secret name for object storage connection"
   value       = local.object_storage_secret_name
 }
+
+output "elasticache_replication_group_id" {
+  description = "ElastiCache replication group ID when enabled"
+  value       = var.enable_elasticache ? local.elasticache_replication_group_id : null
+}
+
+output "elasticache_primary_endpoint_address" {
+  description = "Primary endpoint address for ElastiCache Redis when enabled"
+  value       = var.enable_elasticache ? aws_elasticache_replication_group.gitlab[0].primary_endpoint_address : null
+}
+
+output "elasticache_transit_encryption_enabled" {
+  description = "Whether ElastiCache transit encryption is enabled"
+  value       = var.enable_elasticache ? aws_elasticache_replication_group.gitlab[0].transit_encryption_enabled : null
+}
+
+output "gitlab_redis_chart_install" {
+  description = "Whether bundled Redis remains enabled in the GitLab chart values"
+  value       = local.gitlab_helm_values.redis.install
+}
+
+output "gitlab_redis_external_host_configured" {
+  description = "Whether external Redis host is configured in GitLab chart values"
+  value       = try(local.gitlab_helm_values.global.redis.host, null) != null
+}
+
+output "gitlab_redis_external_port" {
+  description = "Configured external Redis port in GitLab chart values"
+  value       = try(local.gitlab_helm_values.global.redis.port, null)
+}
+
+output "gitlab_redis_external_scheme" {
+  description = "Configured external Redis scheme in GitLab chart values"
+  value       = try(local.gitlab_helm_values.global.redis.scheme, null)
+}
+
+output "gitlab_redis_external_rediss_enabled" {
+  description = "Whether rediss/TLS is enabled for external Redis in GitLab chart values"
+  value       = try(local.gitlab_helm_values.global.redis.rediss, null)
+}
+
+output "gitlab_redis_auth_enabled" {
+  description = "Whether Redis auth is enabled in GitLab chart values for external Redis"
+  value       = try(local.gitlab_helm_values.global.redis.auth.enabled, null)
+}

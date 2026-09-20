@@ -59,6 +59,30 @@ locals {
 
   manage_irsa_role = var.create_irsa_role && var.gitlab_irsa_role_arn == null
 
+  elasticache_replication_group_id = substr(
+    trim(
+      regexreplace(
+        lower(coalesce(var.elasticache_replication_group_id, "${local.cluster_name}-gitlab-redis")),
+        "[^a-z0-9-]",
+        "-"
+      ),
+      "-"
+    ),
+    0,
+    40
+  )
+
+  elasticache_subnet_group_name = !var.enable_elasticache ? null : (
+    var.elasticache_subnet_group_name != null ? var.elasticache_subnet_group_name : aws_elasticache_subnet_group.gitlab[0].name
+  )
+
+  elasticache_security_group_ids = var.enable_elasticache ? distinct(concat(
+    [aws_security_group.elasticache[0].id],
+    var.elasticache_security_group_ids
+  )) : []
+
+  elasticache_connection_port = var.elasticache_port
+
   irsa_role_name = coalesce(var.irsa_role_name, "${local.cluster_name}-gitlab-irsa")
 
   gitlab_service_account_annotations = merge(
@@ -149,6 +173,16 @@ locals {
           tmpBucket = local.s3_bucket_names.tmp
         }
       }
+
+      redis = var.enable_elasticache ? {
+        host   = aws_elasticache_replication_group.gitlab[0].primary_endpoint_address
+        port   = local.elasticache_connection_port
+        scheme = var.elasticache_transit_encryption_enabled ? "rediss" : "redis"
+        rediss = var.elasticache_transit_encryption_enabled
+        auth = {
+          enabled = false
+        }
+      } : {}
     }
 
     postgresql = {
@@ -157,6 +191,10 @@ locals {
 
     minio = {
       enabled = false
+    }
+
+    redis = {
+      install = !var.enable_elasticache
     }
 
     certmanager = {
