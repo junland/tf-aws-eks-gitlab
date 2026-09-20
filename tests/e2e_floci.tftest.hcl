@@ -48,15 +48,6 @@ run "apply_vpc_against_floci" {
     error_message = "VPC should be created successfully against the Floci endpoint."
   }
 
-  assert {
-    condition     = data.aws_eks_cluster_auth.this.name == "floci-e2e"
-    error_message = "aws_eks_cluster_auth data source should use overridden values in Floci tests."
-  }
-
-  assert {
-    condition     = data.aws_eks_cluster_auth.this.token == "floci-e2e-token"
-    error_message = "aws_eks_cluster_auth override token should be used in Floci tests."
-  }
 }
 
 run "plan_with_external_network_inputs" {
@@ -102,5 +93,15 @@ run "plan_with_external_network_inputs" {
   assert {
     condition     = length(aws_vpc.this) == 0
     error_message = "When create_vpc is false, no managed aws_vpc resource should be present."
+  }
+
+  assert {
+    condition     = data.aws_eks_cluster_auth.this.name == "floci-e2e"
+    error_message = "aws_eks_cluster_auth data source should use overridden values in Floci tests."
+  }
+
+  assert {
+    condition     = data.aws_eks_cluster_auth.this.token == "floci-e2e-token"
+    error_message = "aws_eks_cluster_auth override token should be used in Floci tests."
   }
 }

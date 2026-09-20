@@ -25,7 +25,7 @@ bash tests/run-floci.sh
 docker compose -f docker-compose.floci.yml down
 ```
 
-`bash tests/run-floci.sh` checks Floci health, sets the required AWS/endpoint environment variables, and then runs:
+`bash tests/run-floci.sh` checks Floci health, sets the required AWS/endpoint environment variables, creates a temporary `TF_DATA_DIR` for isolation, and then runs from the repository root:
 
 ```bash
 terraform init -backend=false -input=false
