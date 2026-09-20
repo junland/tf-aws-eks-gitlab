@@ -213,8 +213,8 @@ run "plan_with_elasticache_tls_enabled" {
   }
 
   assert {
-    condition     = output.gitlab_redis_external_port == 6380
-    error_message = "External Redis port should switch to 6380 when transit encryption is enabled."
+    condition     = output.gitlab_redis_external_port == 6379
+    error_message = "External Redis port should remain on the configured ElastiCache listener port."
   }
 
   assert {

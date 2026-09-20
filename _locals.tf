@@ -81,7 +81,7 @@ locals {
     var.elasticache_security_group_ids
   )) : []
 
-  elasticache_connection_port = var.elasticache_transit_encryption_enabled ? 6380 : var.elasticache_port
+  elasticache_connection_port = var.elasticache_port
 
   irsa_role_name = coalesce(var.irsa_role_name, "${local.cluster_name}-gitlab-irsa")
 

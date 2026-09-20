@@ -149,7 +149,7 @@ Key inputs:
 - `elasticache_subnet_group_name` (optional reuse)
 - `elasticache_security_group_ids` (optional additional groups attached alongside module-managed ElastiCache security group)
 - `elasticache_allowed_cidrs` (optional additional ingress CIDRs)
-- `elasticache_transit_encryption_enabled` (switches GitLab Redis connection to TLS/`rediss` and port `6380`)
+- `elasticache_transit_encryption_enabled` (switches GitLab Redis connection to TLS/`rediss` while using the configured Redis listener port)
 - `elasticache_auth_token` (must remain `null`; authenticated ElastiCache is not currently supported)
 
 ## 8. Secret Handling
