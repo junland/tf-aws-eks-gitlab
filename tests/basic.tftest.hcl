@@ -203,8 +203,8 @@ run "plan_with_elasticache_tls_enabled" {
   }
 
   assert {
-    condition     = output.gitlab_redis_external_ssl_enabled
-    error_message = "External Redis SSL flag should be true when transit encryption is enabled."
+    condition     = output.gitlab_redis_external_rediss_enabled
+    error_message = "External Redis rediss flag should be true when transit encryption is enabled."
   }
 
   assert {

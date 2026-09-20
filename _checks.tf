@@ -50,10 +50,10 @@ check "elasticache_replica_count" {
 
 check "elasticache_replication_group_id" {
   assert {
-    condition = !var.enable_elasticache || can(regex(
+    condition = !var.enable_elasticache || length(regexall(
       "^[a-z](?:[a-z0-9-]{0,38}[a-z0-9])?$",
       local.elasticache_replication_group_id
-    ))
+    )) > 0
     error_message = "ElastiCache replication group ID must be 1-40 characters, start with a letter, and contain only lowercase letters, digits, and hyphens."
   }
 }

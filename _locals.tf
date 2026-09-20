@@ -178,7 +178,7 @@ locals {
         host   = aws_elasticache_replication_group.gitlab[0].primary_endpoint_address
         port   = local.elasticache_connection_port
         scheme = var.elasticache_transit_encryption_enabled ? "rediss" : "redis"
-        ssl    = var.elasticache_transit_encryption_enabled
+        rediss = var.elasticache_transit_encryption_enabled
       } : {}
     }
 
