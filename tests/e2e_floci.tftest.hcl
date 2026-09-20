@@ -40,7 +40,7 @@ run "apply_vpc_against_floci" {
   command = apply
 
   apply_options {
-    target = [aws_vpc.this[0]]
+    target = ["aws_vpc.this[0]"]
   }
 
   assert {
@@ -96,8 +96,8 @@ run "plan_with_external_network_inputs" {
   }
 
   assert {
-    condition     = data.aws_eks_cluster_auth.this.name == "floci-e2e"
-    error_message = "aws_eks_cluster_auth data source should use overridden values in Floci tests."
+    condition     = data.aws_eks_cluster_auth.this.id == "floci-e2e"
+    error_message = "aws_eks_cluster_auth data source should use overridden id in Floci tests."
   }
 
   assert {
