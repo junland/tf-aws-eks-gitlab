@@ -102,7 +102,7 @@ resource "aws_eks_node_group" "this" {
   scaling_config {
     min_size     = lookup(each.value, "min_size", 1)
     desired_size = lookup(each.value, "desired_size", lookup(each.value, "min_size", 1))
-    max_size     = lookup(each.value, "max_size", lookup(each.value, "desired_size", 1))
+    max_size     = lookup(each.value, "max_size", lookup(each.value, "desired_size", lookup(each.value, "min_size", 1)))
   }
 
   dynamic "update_config" {
@@ -137,7 +137,7 @@ resource "aws_eks_addon" "this" {
 
 resource "aws_iam_openid_connect_provider" "this" {
   client_id_list = ["sts.amazonaws.com"]
-  thumbprint_list = ["9e99a48a9960b14926bb7f3b02e22da0afd29e"]
+  thumbprint_list = [data.tls_certificate.eks_oidc.certificates[length(data.tls_certificate.eks_oidc.certificates) - 1].sha1_fingerprint]
   url             = aws_eks_cluster.this.identity[0].oidc[0].issuer
 
   tags = local.tags
