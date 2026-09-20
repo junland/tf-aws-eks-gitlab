@@ -39,7 +39,7 @@ override_data {
 run "apply_vpc_against_floci" {
   command = apply
 
-  plan_options {
+  apply_options {
     target = [aws_vpc.this[0]]
   }
 
