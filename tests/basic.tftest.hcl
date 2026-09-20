@@ -171,8 +171,27 @@ run "fails_with_invalid_elasticache_cluster_count" {
 
   variables {
     enable_elasticache             = true
-    elasticache_num_cache_clusters = 0
+    elasticache_num_cache_clusters = 2
   }
 
   expect_failures = [check.elasticache_cluster_count]
+}
+
+run "plan_with_elasticache_tls_enabled" {
+  command = plan
+
+  variables {
+    enable_elasticache                     = true
+    elasticache_transit_encryption_enabled = true
+  }
+
+  assert {
+    condition     = output.gitlab_redis_external_scheme == "rediss"
+    error_message = "External Redis scheme should be rediss when transit encryption is enabled."
+  }
+
+  assert {
+    condition     = output.gitlab_redis_external_ssl_enabled
+    error_message = "External Redis SSL flag should be true when transit encryption is enabled."
+  }
 }

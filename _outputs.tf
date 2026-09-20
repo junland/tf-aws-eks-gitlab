@@ -77,3 +77,13 @@ output "gitlab_redis_external_port" {
   description = "Configured external Redis port in GitLab chart values"
   value       = try(local.gitlab_helm_values.global.redis.port, null)
 }
+
+output "gitlab_redis_external_scheme" {
+  description = "Configured external Redis scheme in GitLab chart values"
+  value       = try(local.gitlab_helm_values.global.redis.scheme, null)
+}
+
+output "gitlab_redis_external_ssl_enabled" {
+  description = "Whether SSL/TLS is enabled for external Redis in GitLab chart values"
+  value       = try(local.gitlab_helm_values.global.redis.ssl, null)
+}
