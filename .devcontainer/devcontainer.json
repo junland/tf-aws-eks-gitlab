@@ -2,6 +2,8 @@
   "name": "Terraform AWS EKS GitLab",
   "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
   "features": {
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/git-lfs:1": {},
     "ghcr.io/devcontainers/features/terraform:1": {},
     "ghcr.io/devcontainers/features/aws-cli:1": {},
     "ghcr.io/devcontainers/features/github-cli:1": {},
@@ -11,5 +13,6 @@
       "installHelm": true,
       "installMinikube": false
     }
-  }
+  },
+  "postCreateCommand": "git lfs install"
 }
