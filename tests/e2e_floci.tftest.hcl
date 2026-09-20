@@ -60,11 +60,7 @@ run "apply_vpc_against_floci" {
 }
 
 run "destroy_targeted_vpc" {
-  command = apply
-
-  apply_options {
-    target = [aws_vpc.this[0]]
-  }
+  command = plan
 
   variables {
     aws_region = "us-east-1"
