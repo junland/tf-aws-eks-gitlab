@@ -179,6 +179,9 @@ locals {
         port   = local.elasticache_connection_port
         scheme = var.elasticache_transit_encryption_enabled ? "rediss" : "redis"
         rediss = var.elasticache_transit_encryption_enabled
+        auth = {
+          enabled = false
+        }
       } : {}
     }
 

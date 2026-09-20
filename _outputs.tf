@@ -92,3 +92,8 @@ output "gitlab_redis_external_rediss_enabled" {
   description = "Whether rediss/TLS is enabled for external Redis in GitLab chart values"
   value       = try(local.gitlab_helm_values.global.redis.rediss, null)
 }
+
+output "gitlab_redis_auth_enabled" {
+  description = "Whether Redis auth is enabled in GitLab chart values for external Redis"
+  value       = try(local.gitlab_helm_values.global.redis.auth.enabled, null)
+}

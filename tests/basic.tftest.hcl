@@ -169,6 +169,11 @@ run "plan_with_elasticache_enabled" {
     condition     = output.gitlab_redis_external_port == 6379
     error_message = "External Redis port should default to 6379 when ElastiCache is enabled."
   }
+
+  assert {
+    condition     = output.gitlab_redis_auth_enabled == false
+    error_message = "Redis auth should be disabled for unauthenticated ElastiCache mode."
+  }
 }
 
 run "fails_with_invalid_elasticache_snapshot_retention_limit" {
@@ -235,5 +240,10 @@ run "plan_with_elasticache_tls_enabled" {
   assert {
     condition     = output.elasticache_transit_encryption_enabled
     error_message = "ElastiCache replication group transit encryption should be enabled when requested."
+  }
+
+  assert {
+    condition     = output.gitlab_redis_auth_enabled == false
+    error_message = "Redis auth should remain disabled when ElastiCache TLS mode is enabled."
   }
 }
