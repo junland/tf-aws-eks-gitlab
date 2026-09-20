@@ -47,4 +47,9 @@ run "apply_vpc_against_floci" {
     condition     = aws_vpc.this[0].id != ""
     error_message = "VPC should be created successfully against the Floci endpoint."
   }
+
+  assert {
+    condition     = data.aws_eks_cluster_auth.this.name == "floci-e2e"
+    error_message = "aws_eks_cluster_auth data source should use overridden values in Floci tests."
+  }
 }
