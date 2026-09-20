@@ -212,6 +212,34 @@ run "normalizes_invalid_elasticache_replication_group_id" {
   }
 }
 
+run "normalizes_elasticache_replication_group_id_invalid_characters" {
+  command = plan
+
+  variables {
+    enable_elasticache               = true
+    elasticache_replication_group_id = "Prod Redis!!"
+  }
+
+  assert {
+    condition     = output.elasticache_replication_group_id == "prod-redis"
+    error_message = "ElastiCache replication group ID should normalize invalid characters to hyphens."
+  }
+}
+
+run "normalizes_elasticache_replication_group_id_empty_result" {
+  command = plan
+
+  variables {
+    enable_elasticache               = true
+    elasticache_replication_group_id = "!!!"
+  }
+
+  assert {
+    condition     = output.elasticache_replication_group_id == "a"
+    error_message = "ElastiCache replication group ID should default to a when normalization would otherwise be empty."
+  }
+}
+
 run "fails_when_elasticache_auth_token_is_set" {
   command = plan
 
