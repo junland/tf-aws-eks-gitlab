@@ -189,6 +189,39 @@ run "fails_with_unsupported_elasticache_replica_count" {
   expect_failures = [check.elasticache_replica_count]
 }
 
+run "fails_with_invalid_elasticache_snapshot_retention_limit" {
+  command = plan
+
+  variables {
+    enable_elasticache                   = true
+    elasticache_snapshot_retention_limit = -1
+  }
+
+  expect_failures = [check.elasticache_snapshot_retention_limit]
+}
+
+run "fails_with_invalid_elasticache_replication_group_id" {
+  command = plan
+
+  variables {
+    enable_elasticache               = true
+    elasticache_replication_group_id = "1invalid-group"
+  }
+
+  expect_failures = [check.elasticache_replication_group_id]
+}
+
+run "fails_when_elasticache_auth_token_is_set" {
+  command = plan
+
+  variables {
+    enable_elasticache     = true
+    elasticache_auth_token = "placeholder-token"
+  }
+
+  expect_failures = [check.elasticache_auth_token_unsupported]
+}
+
 run "plan_with_elasticache_tls_enabled" {
   command = plan
 

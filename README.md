@@ -139,6 +139,7 @@ Module behavior when enabled:
 Current limitation:
 
 - This module supports unauthenticated ElastiCache Redis only (`elasticache_auth_token` must remain `null`)
+- Automatic failover and Multi-AZ are not enabled by the current ElastiCache topology configuration
 
 Key inputs:
 

@@ -455,7 +455,7 @@ variable "elasticache_engine_version" {
 }
 
 variable "elasticache_port" {
-  description = "Redis port for ElastiCache when transit encryption is disabled"
+  description = "Redis port for ElastiCache and GitLab external Redis connection"
   type        = number
   default     = 6379
 }
