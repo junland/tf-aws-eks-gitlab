@@ -460,12 +460,6 @@ variable "elasticache_port" {
   default     = 6379
 }
 
-variable "elasticache_num_cache_clusters" {
-  description = "Number of cache clusters in the replication group"
-  type        = number
-  default     = 1
-}
-
 variable "elasticache_parameter_group_name" {
   description = "Optional ElastiCache parameter group name"
   type        = string

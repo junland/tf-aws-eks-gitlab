@@ -141,7 +141,6 @@ Key inputs:
 - `enable_elasticache`
 - `elasticache_node_type`
 - `elasticache_engine_version`
-- `elasticache_num_cache_clusters` (currently must be `1`)
 - `elasticache_subnet_group_name` (optional reuse)
 - `elasticache_security_group_ids` (optional additional groups)
 - `elasticache_allowed_cidrs` (optional additional ingress CIDRs)

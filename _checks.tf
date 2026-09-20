@@ -31,13 +31,6 @@ check "s3_authentication_inputs" {
   }
 }
 
-check "elasticache_cluster_count" {
-  assert {
-    condition     = !var.enable_elasticache || var.elasticache_num_cache_clusters == 1
-    error_message = "When enable_elasticache is true, elasticache_num_cache_clusters must be set to 1 for this module's replication-group configuration."
-  }
-}
-
 check "elasticache_snapshot_retention_limit" {
   assert {
     condition     = !var.enable_elasticache || var.elasticache_snapshot_retention_limit >= 0
