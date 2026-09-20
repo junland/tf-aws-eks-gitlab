@@ -82,6 +82,8 @@ locals {
     var.elasticache_security_group_ids
   )) : []
 
+  elasticache_connection_port = var.elasticache_transit_encryption_enabled ? 6380 : var.elasticache_port
+
   irsa_role_name = coalesce(var.irsa_role_name, "${local.cluster_name}-gitlab-irsa")
 
   gitlab_service_account_annotations = merge(
@@ -175,7 +177,7 @@ locals {
 
       redis = var.enable_elasticache ? {
         host   = aws_elasticache_replication_group.gitlab[0].primary_endpoint_address
-        port   = var.elasticache_port
+        port   = local.elasticache_connection_port
         scheme = var.elasticache_transit_encryption_enabled ? "rediss" : "redis"
         ssl    = var.elasticache_transit_encryption_enabled
       } : {}

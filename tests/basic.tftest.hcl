@@ -142,7 +142,8 @@ run "plan_with_elasticache_enabled" {
   command = plan
 
   variables {
-    enable_elasticache = true
+    enable_elasticache        = true
+    elasticache_replica_count = 1
   }
 
   assert {
@@ -166,6 +167,17 @@ run "plan_with_elasticache_enabled" {
   }
 }
 
+run "fails_with_invalid_elasticache_replica_count" {
+  command = plan
+
+  variables {
+    enable_elasticache        = true
+    elasticache_replica_count = -1
+  }
+
+  expect_failures = [check.elasticache_replica_count]
+}
+
 run "plan_with_elasticache_tls_enabled" {
   command = plan
 
@@ -187,5 +199,10 @@ run "plan_with_elasticache_tls_enabled" {
   assert {
     condition     = output.gitlab_redis_external_host_configured
     error_message = "External Redis host should remain configured when transit encryption is enabled."
+  }
+
+  assert {
+    condition     = output.gitlab_redis_external_port == 6380
+    error_message = "External Redis port should switch to 6380 when transit encryption is enabled."
   }
 }

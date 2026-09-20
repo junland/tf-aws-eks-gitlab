@@ -455,9 +455,15 @@ variable "elasticache_engine_version" {
 }
 
 variable "elasticache_port" {
-  description = "Redis port for ElastiCache"
+  description = "Redis port for ElastiCache when transit encryption is disabled"
   type        = number
   default     = 6379
+}
+
+variable "elasticache_replica_count" {
+  description = "Number of read replicas for the ElastiCache replication group"
+  type        = number
+  default     = 1
 }
 
 variable "elasticache_parameter_group_name" {

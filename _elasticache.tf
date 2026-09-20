@@ -26,8 +26,8 @@ resource "aws_vpc_security_group_ingress_rule" "elasticache_from_eks_nodes" {
 
   security_group_id            = aws_security_group.elasticache[0].id
   referenced_security_group_id = module.eks.node_security_group_id
-  from_port                    = var.elasticache_port
-  to_port                      = var.elasticache_port
+  from_port                    = local.elasticache_connection_port
+  to_port                      = local.elasticache_connection_port
   ip_protocol                  = "tcp"
 }
 
@@ -36,8 +36,8 @@ resource "aws_vpc_security_group_ingress_rule" "elasticache_from_cidr" {
 
   security_group_id = aws_security_group.elasticache[0].id
   cidr_ipv4         = each.value
-  from_port         = var.elasticache_port
-  to_port           = var.elasticache_port
+  from_port         = local.elasticache_connection_port
+  to_port           = local.elasticache_connection_port
   ip_protocol       = "tcp"
 }
 
@@ -57,13 +57,13 @@ resource "aws_elasticache_replication_group" "gitlab" {
   engine                     = "redis"
   engine_version             = var.elasticache_engine_version
   node_type                  = var.elasticache_node_type
-  num_cache_clusters         = 1
-  port                       = var.elasticache_port
+  num_cache_clusters         = var.elasticache_replica_count + 1
+  port                       = local.elasticache_connection_port
   parameter_group_name       = var.elasticache_parameter_group_name
   subnet_group_name          = local.elasticache_subnet_group_name
   security_group_ids         = local.elasticache_security_group_ids
-  automatic_failover_enabled = false
-  multi_az_enabled           = false
+  automatic_failover_enabled = var.elasticache_replica_count > 0
+  multi_az_enabled           = var.elasticache_replica_count > 0
   at_rest_encryption_enabled = var.elasticache_at_rest_encryption_enabled
   transit_encryption_enabled = var.elasticache_transit_encryption_enabled
   apply_immediately          = var.elasticache_apply_immediately
