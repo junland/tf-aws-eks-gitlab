@@ -82,6 +82,11 @@ run "plan_with_existing_network_and_secrets" {
     condition     = output.object_storage_secret_name == "gitlab-object-storage"
     error_message = "The module should reuse the provided object storage secret name."
   }
+
+  assert {
+    condition     = output.gitlab_redis_external_host_configured == false
+    error_message = "External Redis host should be unset when ElastiCache is disabled."
+  }
 }
 
 run "plan_derives_secret_names_from_release_name" {
@@ -185,7 +190,7 @@ run "fails_with_unsupported_elasticache_replica_count" {
     elasticache_replica_count = 1
   }
 
-  expect_failures = [check.elasticache_replica_count]
+  expect_failures = [check.elasticache_replica_topology_supported]
 }
 
 run "fails_with_invalid_elasticache_snapshot_retention_limit" {
