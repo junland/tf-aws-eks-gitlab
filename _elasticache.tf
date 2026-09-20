@@ -52,11 +52,12 @@ resource "aws_vpc_security_group_egress_rule" "elasticache_all" {
 resource "aws_elasticache_replication_group" "gitlab" {
   count = var.enable_elasticache ? 1 : 0
 
-  replication_group_id       = local.elasticache_replication_group_id
-  description                = "GitLab Redis for ${local.cluster_name}"
-  engine                     = "redis"
-  engine_version             = var.elasticache_engine_version
-  node_type                  = var.elasticache_node_type
+  replication_group_id = local.elasticache_replication_group_id
+  description          = "GitLab Redis for ${local.cluster_name}"
+  engine               = "redis"
+  engine_version       = var.elasticache_engine_version
+  node_type            = var.elasticache_node_type
+  # Current module support is intentionally scoped to a single-node topology.
   num_cache_clusters         = 1
   port                       = local.elasticache_connection_port
   parameter_group_name       = var.elasticache_parameter_group_name
