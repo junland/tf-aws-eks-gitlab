@@ -63,6 +63,8 @@ resource "aws_elasticache_replication_group" "gitlab" {
   parameter_group_name       = var.elasticache_parameter_group_name
   subnet_group_name          = local.elasticache_subnet_group_name
   security_group_ids         = local.elasticache_security_group_ids
+  automatic_failover_enabled = false
+  multi_az_enabled           = false
   at_rest_encryption_enabled = var.elasticache_at_rest_encryption_enabled
   transit_encryption_enabled = var.elasticache_transit_encryption_enabled
   apply_immediately          = var.elasticache_apply_immediately

@@ -171,6 +171,11 @@ run "plan_with_elasticache_enabled" {
   }
 
   assert {
+    condition     = output.gitlab_redis_external_scheme == "redis"
+    error_message = "External Redis scheme should default to redis when transit encryption is disabled."
+  }
+
+  assert {
     condition     = output.gitlab_redis_auth_enabled == false
     error_message = "Redis auth should be disabled for unauthenticated ElastiCache mode."
   }
