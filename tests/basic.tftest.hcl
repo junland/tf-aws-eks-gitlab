@@ -42,6 +42,19 @@ mock_provider "aws" {
       user_id    = "AROATERRAFORMTEST:terraform-test"
     }
   }
+
+  mock_resource "aws_iam_role" {
+    defaults = {
+      arn  = "arn:aws:iam::123456789012:role/terraform-test"
+      name = "terraform-test"
+    }
+  }
+
+  mock_resource "aws_elasticache_replication_group" {
+    defaults = {
+      primary_endpoint_address = "redis.example.test"
+    }
+  }
 }
 
 mock_provider "helm" {}
