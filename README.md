@@ -139,14 +139,13 @@ Module behavior when enabled:
 Current limitation:
 
 - This module supports unauthenticated ElastiCache Redis only (`elasticache_auth_token` must remain `null`)
-- Automatic failover and Multi-AZ are not enabled by the current ElastiCache topology configuration
+- This module provisions a single-node ElastiCache topology (no replica/failover configuration)
 
 Key inputs:
 
 - `enable_elasticache`
 - `elasticache_node_type`
 - `elasticache_engine_version`
-- `elasticache_replica_count` (currently must be `0`; replica failover topology is not yet supported)
 - `elasticache_subnet_group_name` (optional reuse)
 - `elasticache_security_group_ids` (optional additional groups attached alongside module-managed ElastiCache security group)
 - `elasticache_allowed_cidrs` (optional additional ingress CIDRs)

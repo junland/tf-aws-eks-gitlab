@@ -171,28 +171,6 @@ run "plan_with_elasticache_enabled" {
   }
 }
 
-run "fails_with_invalid_elasticache_replica_count" {
-  command = plan
-
-  variables {
-    enable_elasticache        = true
-    elasticache_replica_count = -1
-  }
-
-  expect_failures = [check.elasticache_replica_count]
-}
-
-run "fails_with_unsupported_elasticache_replica_count" {
-  command = plan
-
-  variables {
-    enable_elasticache        = true
-    elasticache_replica_count = 1
-  }
-
-  expect_failures = [check.elasticache_replica_topology_supported]
-}
-
 run "fails_with_invalid_elasticache_snapshot_retention_limit" {
   command = plan
 

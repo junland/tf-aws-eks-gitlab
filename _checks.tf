@@ -38,26 +38,13 @@ check "elasticache_snapshot_retention_limit" {
   }
 }
 
-check "elasticache_replica_count" {
-  assert {
-    condition     = !var.enable_elasticache || var.elasticache_replica_count >= 0
-    error_message = "When enable_elasticache is true, elasticache_replica_count must be 0 or greater."
-  }
-}
-
-check "elasticache_replica_topology_supported" {
-  assert {
-    condition     = !var.enable_elasticache || var.elasticache_replica_count == 0
-    error_message = "When enable_elasticache is true, replica topology is currently unsupported and elasticache_replica_count must be 0."
-  }
-}
-
 check "elasticache_replication_group_id" {
   assert {
-    condition = !var.enable_elasticache || length(regexall(
-      "^[a-z](?:[a-z0-9-]{0,38}[a-z0-9])?$",
-      local.elasticache_replication_group_id
-    )) > 0
+    condition = !var.enable_elasticache || (
+      var.elasticache_replication_group_id == null ?
+      length(regexall("^[a-z](?:[a-z0-9-]{0,38}[a-z0-9])?$", local.elasticache_replication_group_id)) > 0 :
+      length(regexall("^[a-z](?:[a-z0-9-]{0,38}[a-z0-9])?$", var.elasticache_replication_group_id)) > 0
+    )
     error_message = "ElastiCache replication group ID must be 1-40 characters, start with a letter, and contain only lowercase letters, digits, and hyphens."
   }
 }

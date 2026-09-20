@@ -460,12 +460,6 @@ variable "elasticache_port" {
   default     = 6379
 }
 
-variable "elasticache_replica_count" {
-  description = "Number of read replicas for the ElastiCache replication group (currently only 0 is supported)"
-  type        = number
-  default     = 0
-}
-
 variable "elasticache_parameter_group_name" {
   description = "Optional ElastiCache parameter group name"
   type        = string
