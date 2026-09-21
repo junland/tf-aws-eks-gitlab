@@ -188,7 +188,7 @@ locals {
         auth = {
           enabled = false
         }
-      } : {
+        } : {
         host   = null
         port   = null
         scheme = null
@@ -203,9 +203,6 @@ locals {
       install = false
     }
 
-    minio = {
-      enabled = false
-    }
 
     redis = {
       install = !var.enable_elasticache
