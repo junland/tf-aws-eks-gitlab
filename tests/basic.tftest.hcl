@@ -50,6 +50,22 @@ mock_provider "aws" {
     }
   }
 
+  mock_resource "aws_eks_cluster" {
+    defaults = {
+      identity = [{
+        oidc = [{
+          issuer = "https://oidc.eks.us-east-1.amazonaws.com/id/terraform-test"
+        }]
+      }]
+    }
+  }
+
+  mock_resource "aws_kms_key" {
+    defaults = {
+      arn = "arn:aws:kms:us-east-1:123456789012:key/87654321-4321-4321-4321-210987654321"
+    }
+  }
+
   mock_resource "aws_elasticache_replication_group" {
     defaults = {
       primary_endpoint_address = "redis.example.test"
@@ -60,6 +76,16 @@ mock_provider "aws" {
 mock_provider "helm" {}
 
 mock_provider "kubernetes" {}
+
+mock_provider "tls" {
+  mock_data "tls_certificate" {
+    defaults = {
+      certificates = [{
+        sha1_fingerprint = "0123456789abcdef0123456789abcdef01234567"
+      }]
+    }
+  }
+}
 
 # Common global variables set across test runs
 variables {
@@ -142,6 +168,15 @@ run "plan_with_module_managed_cluster_encryption" {
   assert {
     condition     = length(aws_kms_key.eks_secrets) == 1
     error_message = "The module should create a dedicated KMS key for EKS secret encryption when encryption is enabled without an existing KMS key."
+  }
+}
+
+run "apply_with_module_managed_cluster_encryption" {
+  command = apply
+
+  variables {
+    enable_cluster_encryption = true
+    create_irsa_role          = false
   }
 
   assert {
