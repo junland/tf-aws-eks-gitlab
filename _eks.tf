@@ -16,11 +16,15 @@ resource "aws_eks_cluster" "this" {
     bootstrap_cluster_creator_admin_permissions = var.enable_cluster_creator_admin_permissions
   }
 
-  encryption_config {
-    resources = ["secrets"]
+  dynamic "encryption_config" {
+    for_each = var.enable_cluster_encryption || var.cluster_encryption_key_arn != null ? [1] : []
 
-    provider {
-      key_arn = var.cluster_encryption_key_arn != null ? var.cluster_encryption_key_arn : aws_kms_key.eks_secrets[0].arn
+    content {
+      resources = ["secrets"]
+
+      provider {
+        key_arn = var.cluster_encryption_key_arn != null ? var.cluster_encryption_key_arn : aws_kms_key.eks_secrets[0].arn
+      }
     }
   }
 

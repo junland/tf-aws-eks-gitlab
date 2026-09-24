@@ -87,13 +87,13 @@ run "plan_with_existing_network_and_secrets" {
   }
 
   assert {
-    condition     = length(aws_eks_cluster.this.encryption_config) == 1 && length(aws_eks_cluster.this.encryption_config[0].resources) == 1 && contains(tolist(aws_eks_cluster.this.encryption_config[0].resources), "secrets")
-    error_message = "The EKS cluster should require envelope encryption for Kubernetes secrets."
+    condition     = length(aws_eks_cluster.this.encryption_config) == 0
+    error_message = "The EKS cluster should not enable secret envelope encryption unless the feature is explicitly configured."
   }
 
   assert {
-    condition     = length(aws_kms_key.eks_secrets) == 1
-    error_message = "The module should create a dedicated KMS key for EKS secret encryption when one is not provided."
+    condition     = length(aws_kms_key.eks_secrets) == 0
+    error_message = "The module should not create an EKS encryption key unless secret envelope encryption is enabled."
   }
 
   assert {
@@ -127,10 +127,29 @@ run "plan_with_existing_network_and_secrets" {
   }
 }
 
+run "plan_with_module_managed_cluster_encryption" {
+  command = plan
+
+  variables {
+    enable_cluster_encryption = true
+  }
+
+  assert {
+    condition     = length(aws_eks_cluster.this.encryption_config) == 1 && length(aws_eks_cluster.this.encryption_config[0].resources) == 1 && contains(tolist(aws_eks_cluster.this.encryption_config[0].resources), "secrets")
+    error_message = "The EKS cluster should require envelope encryption for Kubernetes secrets when encryption is enabled."
+  }
+
+  assert {
+    condition     = length(aws_kms_key.eks_secrets) == 1
+    error_message = "The module should create a dedicated KMS key for EKS secret encryption when encryption is enabled without an existing KMS key."
+  }
+}
+
 run "plan_with_existing_cluster_encryption_key" {
   command = plan
 
   variables {
+    enable_cluster_encryption = true
     cluster_encryption_key_arn = "arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012"
   }
 

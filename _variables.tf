@@ -57,8 +57,14 @@ variable "cluster_authentication_mode" {
   }
 }
 
+variable "enable_cluster_encryption" {
+  description = "Whether to enable EKS secret envelope encryption"
+  type        = bool
+  default     = false
+}
+
 variable "cluster_encryption_key_arn" {
-  description = "Existing KMS key ARN for EKS secret envelope encryption. If null, the module creates one."
+  description = "Existing KMS key ARN for EKS secret envelope encryption. If null and encryption is enabled, the module creates one."
   type        = string
   default     = null
 }

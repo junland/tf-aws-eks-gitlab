@@ -10,7 +10,7 @@ A production-ready Terraform module that provisions an Amazon EKS cluster and de
 
 ## Features
 
-- **Elastic Kubernetes Service (EKS)**: Configurable Kubernetes version, managed node groups, API-based cluster authentication, secret encryption with module-managed or existing KMS keys, and IAM roles.
+- **Elastic Kubernetes Service (EKS)**: Configurable Kubernetes version, managed node groups, API-based cluster authentication, optional secret encryption with module-managed or existing KMS keys, and IAM roles.
 - **Flexible VPC Networking**: Provisions a new managed VPC with public/private subnets or integrates with existing AWS network infrastructure.
 - **Official GitLab Helm Chart**: Deploys GitLab using the official Helm provider and chart (`https://charts.gitlab.io`).
 - **External Database & Object Storage**: Offloads state to external PostgreSQL and S3-compatible storage for high availability and scalability.
@@ -269,7 +269,7 @@ No modules.
 | <a name="input_cluster_enabled_log_types"></a> [cluster\_enabled\_log\_types](#input\_cluster\_enabled\_log\_types) | EKS control plane logs to enable | `list(string)` | <pre>[<br/>  "api",<br/>  "audit",<br/>  "authenticator",<br/>  "controllerManager",<br/>  "scheduler"<br/>]</pre> | no |
 | <a name="input_cluster_endpoint_private_access"></a> [cluster\_endpoint\_private\_access](#input\_cluster\_endpoint\_private\_access) | Whether the EKS API endpoint is privately accessible | `bool` | `true` | no |
 | <a name="input_cluster_endpoint_public_access"></a> [cluster\_endpoint\_public\_access](#input\_cluster\_endpoint\_public\_access) | Whether the EKS API endpoint is publicly accessible | `bool` | `true` | no |
-| <a name="input_cluster_encryption_key_arn"></a> [cluster\_encryption\_key\_arn](#input\_cluster\_encryption\_key\_arn) | Existing KMS key ARN for EKS secret envelope encryption. If null, the module creates one. | `string` | `null` | no |
+| <a name="input_cluster_encryption_key_arn"></a> [cluster\_encryption\_key\_arn](#input\_cluster\_encryption\_key\_arn) | Existing KMS key ARN for EKS secret envelope encryption. If null and encryption is enabled, the module creates one. | `string` | `null` | no |
 | <a name="input_cluster_name"></a> [cluster\_name](#input\_cluster\_name) | EKS cluster name. If null, generated from name\_prefix | `string` | `null` | no |
 | <a name="input_cluster_service_ipv4_cidr"></a> [cluster\_service\_ipv4\_cidr](#input\_cluster\_service\_ipv4\_cidr) | CIDR block for Kubernetes service IPs | `string` | `null` | no |
 | <a name="input_create_gitlab_security_group"></a> [create\_gitlab\_security\_group](#input\_create\_gitlab\_security\_group) | Create dedicated security group and attach it to GitLab load balancer | `bool` | `false` | no |
@@ -291,6 +291,7 @@ No modules.
 | <a name="input_elasticache_snapshot_retention_limit"></a> [elasticache\_snapshot\_retention\_limit](#input\_elasticache\_snapshot\_retention\_limit) | Number of days to retain ElastiCache snapshots (currently only 0 is supported) | `number` | `0` | no |
 | <a name="input_elasticache_subnet_group_name"></a> [elasticache\_subnet\_group\_name](#input\_elasticache\_subnet\_group\_name) | Existing ElastiCache subnet group name. If null, module creates one | `string` | `null` | no |
 | <a name="input_elasticache_transit_encryption_enabled"></a> [elasticache\_transit\_encryption\_enabled](#input\_elasticache\_transit\_encryption\_enabled) | Enable in-transit encryption for ElastiCache | `bool` | `false` | no |
+| <a name="input_enable_cluster_encryption"></a> [enable\_cluster\_encryption](#input\_enable\_cluster\_encryption) | Whether to enable EKS secret envelope encryption | `bool` | `false` | no |
 | <a name="input_enable_cluster_creator_admin_permissions"></a> [enable\_cluster\_creator\_admin\_permissions](#input\_enable\_cluster\_creator\_admin\_permissions) | Grant cluster-admin permissions to the Terraform caller | `bool` | `true` | no |
 | <a name="input_enable_nat_gateway"></a> [enable\_nat\_gateway](#input\_enable\_nat\_gateway) | Whether to enable NAT gateway(s) when create\_vpc is true | `bool` | `true` | no |
 | <a name="input_gitlab_chart_version"></a> [gitlab\_chart\_version](#input\_gitlab\_chart\_version) | GitLab Helm chart version | `string` | `"8.4.1"` | no |
