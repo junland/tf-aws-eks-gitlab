@@ -77,7 +77,7 @@ data "aws_iam_policy_document" "eks_secrets_encryption" {
 
     principals {
       type        = "Service"
-      identifiers = ["eks.${var.aws_region}.${data.aws_partition.current.dns_suffix}"]
+      identifiers = ["eks.${data.aws_partition.current.dns_suffix}"]
     }
 
     condition {
