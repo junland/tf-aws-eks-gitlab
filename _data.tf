@@ -69,6 +69,7 @@ data "aws_iam_policy_document" "eks_secrets_encryption" {
 
     actions = [
       "kms:CreateGrant",
+      "kms:DescribeKey",
       "kms:ListGrants",
     ]
 

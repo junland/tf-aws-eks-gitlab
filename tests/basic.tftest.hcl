@@ -138,6 +138,11 @@ run "plan_with_existing_cluster_encryption_key" {
     condition     = length(aws_kms_key.eks_secrets) == 0
     error_message = "The module should not create an EKS encryption key when an existing KMS key ARN is provided."
   }
+
+  assert {
+    condition     = aws_eks_cluster.this.encryption_config[0].provider[0].key_arn == var.cluster_encryption_key_arn
+    error_message = "The EKS cluster should use the provided KMS key ARN for secret envelope encryption."
+  }
 }
 
 run "plan_derives_secret_names_from_release_name" {
