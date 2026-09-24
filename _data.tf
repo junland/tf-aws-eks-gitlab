@@ -67,7 +67,12 @@ data "aws_iam_policy_document" "eks_secrets_encryption" {
   statement {
     sid = "AllowEKSClusterRoleGrantManagement"
 
-    actions = ["kms:CreateGrant"]
+    actions = [
+      "kms:CreateGrant",
+      "kms:ListGrants",
+      "kms:RetireGrant",
+      "kms:RevokeGrant"
+    ]
 
     resources = ["*"]
 

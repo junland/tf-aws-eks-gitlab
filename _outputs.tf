@@ -75,7 +75,7 @@ output "gitlab_redis_chart_install" {
 
 output "gitlab_redis_external_host_configured" {
   description = "Whether external Redis host is configured in GitLab chart values"
-  value       = true
+  value       = contains(keys(local.gitlab_helm_values.global.redis), "host")
 }
 
 output "gitlab_redis_external_port" {
