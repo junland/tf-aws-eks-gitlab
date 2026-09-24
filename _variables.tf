@@ -67,6 +67,14 @@ variable "cluster_encryption_key_arn" {
   description = "Existing KMS key ARN for EKS secret envelope encryption. If null and encryption is enabled, the module creates one."
   type        = string
   default     = null
+
+  validation {
+    condition = var.cluster_encryption_key_arn == null || trimspace(var.cluster_encryption_key_arn) == "" || can(regex(
+      "^arn:[^:]+:kms:[^:]+:[0-9]{12}:key/[0-9A-Fa-f-]+$",
+      var.cluster_encryption_key_arn
+    ))
+    error_message = "cluster_encryption_key_arn must be a valid KMS key ARN."
+  }
 }
 
 variable "enable_cluster_creator_admin_permissions" {

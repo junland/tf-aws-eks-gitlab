@@ -174,6 +174,17 @@ run "fails_with_cluster_encryption_key_without_enablement" {
   expect_failures = [check.cluster_encryption_inputs]
 }
 
+run "fails_with_empty_cluster_encryption_key_arn" {
+  command = plan
+
+  variables {
+    enable_cluster_encryption = true
+    cluster_encryption_key_arn = ""
+  }
+
+  expect_failures = [check.cluster_encryption_inputs]
+}
+
 run "plan_derives_secret_names_from_release_name" {
   command = plan
 
