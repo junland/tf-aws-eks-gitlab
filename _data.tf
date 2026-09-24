@@ -17,7 +17,7 @@ data "aws_iam_policy_document" "eks_cluster_assume_role" {
 
     principals {
       type        = "Service"
-      identifiers = ["eks.${var.aws_region}.${data.aws_partition.current.dns_suffix}"]
+      identifiers = ["eks.${data.aws_partition.current.dns_suffix}"]
     }
   }
 }
@@ -60,7 +60,7 @@ data "aws_iam_policy_document" "eks_secrets_encryption" {
 
     principals {
       type        = "Service"
-      identifiers = ["eks.${var.aws_region}.${data.aws_partition.current.dns_suffix}"]
+      identifiers = ["eks.${data.aws_partition.current.dns_suffix}"]
     }
   }
 
