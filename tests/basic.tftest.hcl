@@ -50,11 +50,6 @@ mock_provider "aws" {
     }
   }
 
-  mock_resource "aws_elasticache_replication_group" {
-    defaults = {
-      primary_endpoint_address = "redis.example.test"
-    }
-  }
 }
 
 mock_provider "helm" {}
@@ -98,7 +93,7 @@ run "plan_with_existing_network_and_secrets" {
 
   assert {
     condition     = output.gitlab_redis_external_host_configured == false
-    error_message = "External Redis host should be unset when ElastiCache is disabled."
+    error_message = "External Redis host should be unset when external_redis is not configured."
   }
 }
 
@@ -156,144 +151,93 @@ run "fails_without_s3_authentication" {
   expect_failures = [check.s3_authentication_inputs]
 }
 
-run "plan_with_elasticache_enabled" {
+run "plan_with_external_redis" {
   command = plan
 
   variables {
-    enable_elasticache = true
+    external_redis = {
+      host = "redis.example.test"
+    }
   }
 
   assert {
-    condition     = output.elasticache_replication_group_id == "unit-eks-gitlab-redis"
-    error_message = "The ElastiCache replication group ID should default from the cluster name."
+    condition     = output.gitlab_redis_external_host == "redis.example.test"
+    error_message = "External Redis host should match the provided value."
   }
 
   assert {
     condition     = output.gitlab_redis_chart_install == false
-    error_message = "Bundled Redis should be disabled when ElastiCache is enabled."
+    error_message = "Bundled Redis should be disabled when external Redis is configured."
   }
 
   assert {
     condition     = output.gitlab_redis_external_port == 6379
-    error_message = "External Redis port should default to 6379 when ElastiCache is enabled."
+    error_message = "External Redis port should default to 6379 when external Redis is configured."
   }
 
   assert {
     condition     = output.gitlab_redis_external_scheme == "redis"
-    error_message = "External Redis scheme should default to redis when transit encryption is disabled."
+    error_message = "External Redis scheme should default to redis when TLS is disabled."
   }
 
   assert {
     condition     = output.gitlab_redis_auth_enabled == false
-    error_message = "Redis auth should be disabled for unauthenticated ElastiCache mode."
+    error_message = "Redis auth should be disabled for external Redis wiring."
   }
 }
 
-run "fails_with_invalid_elasticache_snapshot_retention_limit" {
+run "fails_when_external_redis_host_is_empty" {
   command = plan
 
   variables {
-    enable_elasticache                   = true
-    elasticache_snapshot_retention_limit = -1
+    external_redis = {
+      host = ""
+    }
   }
 
-  expect_failures = [check.elasticache_snapshot_retention_limit]
+  expect_failures = [var.external_redis]
 }
 
-run "fails_with_unsupported_elasticache_snapshot_retention_limit" {
+run "fails_when_external_redis_port_is_invalid" {
   command = plan
 
   variables {
-    enable_elasticache                   = true
-    elasticache_snapshot_retention_limit = 1
+    external_redis = {
+      host = "redis.example.test"
+      port = 70000
+    }
   }
 
-  expect_failures = [check.elasticache_snapshot_retention_limit]
+  expect_failures = [var.external_redis]
 }
 
-run "normalizes_invalid_elasticache_replication_group_id" {
+run "plan_with_external_redis_tls_enabled" {
   command = plan
 
   variables {
-    enable_elasticache               = true
-    elasticache_replication_group_id = "1invalid-group"
-  }
-
-  assert {
-    condition     = output.elasticache_replication_group_id == "a1invalid-group"
-    error_message = "ElastiCache replication group ID should be normalized to start with a letter."
-  }
-}
-
-run "normalizes_elasticache_replication_group_id_invalid_characters" {
-  command = plan
-
-  variables {
-    enable_elasticache               = true
-    elasticache_replication_group_id = "Prod Redis!!"
-  }
-
-  assert {
-    condition     = output.elasticache_replication_group_id == "prod-redis"
-    error_message = "ElastiCache replication group ID should normalize invalid characters to hyphens."
-  }
-}
-
-run "normalizes_elasticache_replication_group_id_empty_result" {
-  command = plan
-
-  variables {
-    enable_elasticache               = true
-    elasticache_replication_group_id = "!!!"
-  }
-
-  assert {
-    condition     = output.elasticache_replication_group_id == "a"
-    error_message = "ElastiCache replication group ID should default to a when normalization would otherwise be empty."
-  }
-}
-
-run "fails_when_elasticache_auth_token_is_set" {
-  command = plan
-
-  variables {
-    enable_elasticache     = true
-    elasticache_auth_token = "placeholder-token"
-  }
-
-  expect_failures = [check.elasticache_auth_token_unsupported]
-}
-
-run "plan_with_elasticache_tls_enabled" {
-  command = plan
-
-  variables {
-    enable_elasticache                     = true
-    elasticache_transit_encryption_enabled = true
+    external_redis = {
+      host        = "redis.example.test"
+      tls_enabled = true
+    }
   }
 
   assert {
     condition     = output.gitlab_redis_external_scheme == "rediss"
-    error_message = "External Redis scheme should be rediss when transit encryption is enabled."
+    error_message = "External Redis scheme should be rediss when TLS is enabled."
   }
 
   assert {
     condition     = output.gitlab_redis_external_rediss_enabled
-    error_message = "External Redis rediss flag should be true when transit encryption is enabled."
+    error_message = "External Redis rediss flag should be true when TLS is enabled."
   }
 
   assert {
     condition     = output.gitlab_redis_external_port == 6379
-    error_message = "External Redis port should remain on the configured ElastiCache listener port."
-  }
-
-  assert {
-    condition     = output.elasticache_transit_encryption_enabled
-    error_message = "ElastiCache replication group transit encryption should be enabled when requested."
+    error_message = "External Redis port should remain on the configured listener port."
   }
 
   assert {
     condition     = output.gitlab_redis_auth_enabled == false
-    error_message = "Redis auth should remain disabled when ElastiCache TLS mode is enabled."
+    error_message = "Redis auth should remain disabled when external Redis TLS mode is enabled."
   }
 }

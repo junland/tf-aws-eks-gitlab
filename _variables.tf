@@ -451,95 +451,24 @@ variable "s3_buckets" {
   default = {}
 }
 
-variable "enable_elasticache" {
-  description = "Create and configure an ElastiCache Redis replication group for GitLab"
-  type        = bool
-  default     = false
-}
+variable "external_redis" {
+  description = "External Redis or ElastiCache connection settings. When null, the bundled GitLab Redis chart remains enabled"
+  type = object({
+    host        = string
+    port        = optional(number, 6379)
+    tls_enabled = optional(bool, false)
+  })
+  default = null
 
-variable "elasticache_replication_group_id" {
-  description = "Replication group ID for ElastiCache. If null, generated from cluster name"
-  type        = string
-  default     = null
-}
+  validation {
+    condition     = var.external_redis == null ? true : trim(var.external_redis.host) != ""
+    error_message = "When external_redis is set, host must be a non-empty string."
+  }
 
-variable "elasticache_node_type" {
-  description = "ElastiCache node type for Redis"
-  type        = string
-  default     = "cache.t4g.small"
-}
-
-variable "elasticache_engine_version" {
-  description = "ElastiCache Redis engine version"
-  type        = string
-  default     = "7.1"
-}
-
-variable "elasticache_port" {
-  description = "Redis port for ElastiCache and GitLab external Redis connection"
-  type        = number
-  default     = 6379
-}
-
-variable "elasticache_parameter_group_name" {
-  description = "Optional ElastiCache parameter group name"
-  type        = string
-  default     = null
-}
-
-variable "elasticache_subnet_group_name" {
-  description = "Existing ElastiCache subnet group name. If null, module creates one"
-  type        = string
-  default     = null
-}
-
-variable "elasticache_security_group_ids" {
-  description = "Additional security group IDs attached to ElastiCache alongside the module-managed security group"
-  type        = list(string)
-  default     = []
-}
-
-variable "elasticache_allowed_cidrs" {
-  description = "Additional CIDRs allowed to connect to ElastiCache Redis"
-  type        = list(string)
-  default     = []
-}
-
-variable "elasticache_at_rest_encryption_enabled" {
-  description = "Enable at-rest encryption for ElastiCache"
-  type        = bool
-  default     = true
-}
-
-variable "elasticache_transit_encryption_enabled" {
-  description = "Enable in-transit encryption for ElastiCache"
-  type        = bool
-  default     = false
-}
-
-variable "elasticache_auth_token" {
-  description = "Auth token for ElastiCache Redis (currently unsupported by this module and must remain null)"
-  type        = string
-  sensitive   = true
-  default     = null
-}
-
-variable "elasticache_apply_immediately" {
-  description = "Apply ElastiCache modifications immediately"
-  type        = bool
-  default     = true
-}
-
-variable "elasticache_maintenance_window" {
-  description = "Preferred maintenance window for ElastiCache (for example sun:05:00-sun:06:00)"
-  type        = string
-  default     = null
-}
-
-variable "elasticache_snapshot_retention_limit" {
-  description = "Number of days to retain ElastiCache snapshots (currently only 0 is supported)"
-  type        = number
-  default     = 0
+  validation {
+    condition     = var.external_redis == null ? true : (var.external_redis.port >= 1 && var.external_redis.port <= 65535)
+    error_message = "When external_redis is set, port must be between 1 and 65535."
+  }
 }
 
 variable "create_irsa_role" {

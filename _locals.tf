@@ -59,35 +59,12 @@ locals {
 
   manage_irsa_role = var.create_irsa_role && var.gitlab_irsa_role_arn == null
 
-  elasticache_replication_group_id_sanitized = trim(
-    replace(
-      lower(coalesce(var.elasticache_replication_group_id, "${local.cluster_name}-gitlab-redis")),
-      "/[^a-z0-9-]/",
-      "-"
-    ),
-    "-"
-  )
-
-  elasticache_replication_group_id = substr(
-    local.elasticache_replication_group_id_sanitized == "" ? "a" : (
-      length(regexall("^[a-z]", local.elasticache_replication_group_id_sanitized)) > 0 ?
-      local.elasticache_replication_group_id_sanitized :
-      "a${local.elasticache_replication_group_id_sanitized}"
-    ),
-    0,
-    40
-  )
-
-  elasticache_subnet_group_name = !var.enable_elasticache ? null : (
-    var.elasticache_subnet_group_name != null ? var.elasticache_subnet_group_name : aws_elasticache_subnet_group.gitlab[0].name
-  )
-
-  elasticache_security_group_ids = var.enable_elasticache ? distinct(concat(
-    [aws_security_group.elasticache[0].id],
-    var.elasticache_security_group_ids
-  )) : []
-
-  elasticache_connection_port = var.elasticache_port
+  external_redis = var.external_redis == null ? null : {
+    host   = var.external_redis.host
+    port   = var.external_redis.port
+    scheme = var.external_redis.tls_enabled ? "rediss" : "redis"
+    rediss = var.external_redis.tls_enabled
+  }
 
   irsa_role_name = coalesce(var.irsa_role_name, "${local.cluster_name}-gitlab-irsa")
 
@@ -180,15 +157,15 @@ locals {
         }
       }
 
-      redis = var.enable_elasticache ? {
-        host   = aws_elasticache_replication_group.gitlab[0].primary_endpoint_address
-        port   = local.elasticache_connection_port
-        scheme = var.elasticache_transit_encryption_enabled ? "rediss" : "redis"
-        rediss = var.elasticache_transit_encryption_enabled
+      redis = local.external_redis != null ? {
+        host   = local.external_redis.host
+        port   = local.external_redis.port
+        scheme = local.external_redis.scheme
+        rediss = local.external_redis.rediss
         auth = {
           enabled = false
         }
-        } : {
+      } : {
         host   = null
         port   = null
         scheme = null
@@ -205,7 +182,7 @@ locals {
 
 
     redis = {
-      install = !var.enable_elasticache
+      install = local.external_redis == null
     }
 
     certmanager = {

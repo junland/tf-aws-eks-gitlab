@@ -16,7 +16,7 @@ A production-ready Terraform module that provisions an Amazon EKS cluster and de
 - **External Database & Object Storage**: Offloads state to external PostgreSQL and S3-compatible storage for high availability and scalability.
 - **Secure Secret Management**: Integrates with pre-existing Kubernetes Secrets or provisions them securely via Terraform inputs.
 - **AWS IRSA Integration**: Supports IAM Roles for Service Accounts (IRSA) for native, keyless AWS S3 authentication.
-- **Optional ElastiCache Redis**: Optional automated provisioning of Amazon ElastiCache Redis with automatic GitLab connection wiring.
+- **External Redis / ElastiCache Support**: Optionally wires GitLab to an existing Redis or ElastiCache endpoint and disables the bundled Redis chart automatically.
 - **Production-Oriented**: Includes customizable defaults for ingress, TLS/cert-manager, autoscaling, and custom Helm value overrides.
 
 ---
@@ -34,8 +34,7 @@ This module follows standard Terraform practices with standard `_*.tf` file nami
 ├── _vpc.tf             # AWS VPC, subnet, and routing resources
 ├── _eks.tf             # EKS Cluster & managed node group definitions
 ├── _iam.tf             # IAM roles, policies, and IRSA configuration
-├── _security_groups.tf # Security group rules for EKS & ElastiCache
-├── _elasticache.tf     # AWS ElastiCache Redis replication group
+├── _security_groups.tf # Security group rules for GitLab ingress
 ├── _kubernetes.tf      # Kubernetes namespaces, secrets, and configs
 └── _helm.tf            # Helm release definition for GitLab
 ```
@@ -46,7 +45,7 @@ This module follows standard Terraform practices with standard `_*.tf` file nami
 
 | Category | Requirement | Description |
 | :--- | :--- | :--- |
-| **AWS** | IAM Permissions | Access to manage EKS, VPC, IAM, EC2, ElastiCache, and Route53. |
+| **AWS** | IAM Permissions | Access to manage EKS, VPC, IAM, EC2, and Route53. |
 | | DNS & TLS | Route53 domain delegation and active SSL/TLS certificates (or `cert-manager`). |
 | | Object Storage | S3 buckets configured with optional IRSA IAM policy access. |
 | **PostgreSQL** | External DB | Managed instance (e.g., AWS RDS/Aurora or self-hosted) with port `5432` accessible from EKS nodes. |
@@ -71,6 +70,9 @@ GitLab relies on S3-compatible object storage for artifacts, uploads, LFS, backu
   * **Existing Secret**: Provide `s3_existing_secret_name` containing object storage connection configuration.
   * **Static Credentials**: Pass `s3_access_key` and `s3_secret_key` for direct creation of the storage secret.
 
+### 3. External Redis / ElastiCache
+By default, the GitLab chart deploys its bundled Redis. To use an existing Redis or ElastiCache cluster instead, set `external_redis` with the endpoint details.
+
 ---
 
 ## Quickstart & Usage
@@ -94,6 +96,13 @@ module "gitlab_eks" {
   s3_use_iam_profile      = true
   s3_existing_secret_name = "gitlab-object-storage-config"
 
+  # Optional external Redis / ElastiCache
+  external_redis = {
+    host        = "gitlab-redis.example.cache.amazonaws.com"
+    port        = 6379
+    tls_enabled = true
+  }
+
   # Optional Helm Value Overrides
   gitlab_extra_values = {
     "global.workhorse.serviceType" = "ClusterIP"
@@ -115,21 +124,22 @@ module "gitlab_eks" {
 | `postgresql_username` | `string` | *Required* | Username for PostgreSQL authentication. |
 | `s3_region` | `string` | *Required* | AWS region where the S3 buckets reside. |
 | `create_vpc` | `bool` | `true` | Set to `false` to deploy EKS inside an existing VPC. |
-| `enable_elasticache` | `bool` | `false` | Provisions an AWS ElastiCache Redis cluster and wires it to GitLab. |
+| `external_redis` | `object` | `null` | Configures an existing Redis or ElastiCache endpoint and disables the bundled GitLab Redis chart. |
 | `s3_use_iam_profile` | `bool` | `false` | Enables IRSA for AWS S3 authentication without static access keys. |
 
 ---
 
-## ElastiCache Redis Integration
+## External Redis / ElastiCache Integration
 
-Setting `enable_elasticache = true` automates the provisioning of Amazon ElastiCache Redis and overrides the bundled Helm chart Redis (`redis.install = false`).
+Set `external_redis` to point GitLab at an existing Redis or ElastiCache endpoint. When `external_redis` is `null`, the bundled GitLab Redis chart remains enabled. When it is set, the module disables the bundled Redis chart and configures GitLab to use the provided host and port.
 
-### Current Capabilities & Constraints
+### Supported Settings
 
 > [!IMPORTANT]
-> - **Authentication**: Unauthenticated ElastiCache mode only (`elasticache_auth_token` must remain `null`).
-> - **Topology**: Single-node instance (replication and auto-failover groups are not currently supported).
-> - **Transit Encryption**: Enable `elasticache_transit_encryption_enabled = true` to switch GitLab Redis connections to `rediss://` TLS mode.
+> - **Host**: `external_redis.host` is required.
+> - **Port**: `external_redis.port` defaults to `6379`.
+> - **TLS**: Set `external_redis.tls_enabled = true` to switch GitLab Redis connections to `rediss://` mode.
+> - **Authentication**: The module wires Redis as unauthenticated and does not manage Redis credentials or auth secrets.
 
 ---
 
@@ -215,8 +225,6 @@ No modules.
 | [aws_eks_addon.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_addon) | resource |
 | [aws_eks_cluster.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_cluster) | resource |
 | [aws_eks_node_group.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_node_group) | resource |
-| [aws_elasticache_replication_group.gitlab](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/elasticache_replication_group) | resource |
-| [aws_elasticache_subnet_group.gitlab](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/elasticache_subnet_group) | resource |
 | [aws_iam_openid_connect_provider.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_openid_connect_provider) | resource |
 | [aws_iam_role.eks_cluster](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
 | [aws_iam_role.eks_node_group](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
@@ -232,15 +240,11 @@ No modules.
 | [aws_route_table.public](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/route_table) | resource |
 | [aws_route_table_association.private](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/route_table_association) | resource |
 | [aws_route_table_association.public](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/route_table_association) | resource |
-| [aws_security_group.elasticache](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group) | resource |
 | [aws_security_group.gitlab_ingress](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group) | resource |
 | [aws_subnet.private](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/subnet) | resource |
 | [aws_subnet.public](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/subnet) | resource |
 | [aws_vpc.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc) | resource |
-| [aws_vpc_security_group_egress_rule.elasticache_all](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_egress_rule) | resource |
 | [aws_vpc_security_group_egress_rule.gitlab_all](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_egress_rule) | resource |
-| [aws_vpc_security_group_ingress_rule.elasticache_from_cidr](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_ingress_rule) | resource |
-| [aws_vpc_security_group_ingress_rule.elasticache_from_eks_nodes](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_ingress_rule) | resource |
 | [aws_vpc_security_group_ingress_rule.gitlab_http](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_ingress_rule) | resource |
 | [aws_vpc_security_group_ingress_rule.gitlab_https](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_ingress_rule) | resource |
 | [helm_release.gitlab](https://registry.terraform.io/providers/hashicorp/helm/latest/docs/resources/release) | resource |
@@ -273,23 +277,9 @@ No modules.
 | <a name="input_create_vpc"></a> [create\_vpc](#input\_create\_vpc) | Whether this module should create the VPC and subnets | `bool` | `true` | no |
 | <a name="input_deploy_gitlab"></a> [deploy\_gitlab](#input\_deploy\_gitlab) | Whether to deploy GitLab Helm release | `bool` | `true` | no |
 | <a name="input_eks_managed_node_groups"></a> [eks\_managed\_node\_groups](#input\_eks\_managed\_node\_groups) | Managed node group configuration used to create aws\_eks\_node\_group resources | <pre>map(object({<br/>    instance_types             = optional(list(string))<br/>    ami_type                   = optional(string)<br/>    min_size                   = optional(number)<br/>    desired_size               = optional(number)<br/>    max_size                   = optional(number)<br/>    capacity_type              = optional(string)<br/>    disk_size                  = optional(number)<br/>    labels                     = optional(map(string))<br/>    release_version            = optional(string)<br/>    version                    = optional(string)<br/>    max_unavailable            = optional(number)<br/>    max_unavailable_percentage = optional(number)<br/>  }))</pre> | <pre>{<br/>  "default": {<br/>    "ami_type": "AL2023_x86_64_STANDARD",<br/>    "capacity_type": "ON_DEMAND",<br/>    "desired_size": 3,<br/>    "disk_size": 100,<br/>    "instance_types": [<br/>      "m6i.large"<br/>    ],<br/>    "max_size": 6,<br/>    "min_size": 2<br/>  }<br/>}</pre> | no |
-| <a name="input_elasticache_allowed_cidrs"></a> [elasticache\_allowed\_cidrs](#input\_elasticache\_allowed\_cidrs) | Additional CIDRs allowed to connect to ElastiCache Redis | `list(string)` | `[]` | no |
-| <a name="input_elasticache_apply_immediately"></a> [elasticache\_apply\_immediately](#input\_elasticache\_apply\_immediately) | Apply ElastiCache modifications immediately | `bool` | `true` | no |
-| <a name="input_elasticache_at_rest_encryption_enabled"></a> [elasticache\_at\_rest\_encryption\_enabled](#input\_elasticache\_at\_rest\_encryption\_enabled) | Enable at-rest encryption for ElastiCache | `bool` | `true` | no |
-| <a name="input_elasticache_auth_token"></a> [elasticache\_auth\_token](#input\_elasticache\_auth\_token) | Auth token for ElastiCache Redis (currently unsupported by this module and must remain null) | `string` | `null` | no |
-| <a name="input_elasticache_engine_version"></a> [elasticache\_engine\_version](#input\_elasticache\_engine\_version) | ElastiCache Redis engine version | `string` | `"7.1"` | no |
-| <a name="input_elasticache_maintenance_window"></a> [elasticache\_maintenance\_window](#input\_elasticache\_maintenance\_window) | Preferred maintenance window for ElastiCache (for example sun:05:00-sun:06:00) | `string` | `null` | no |
-| <a name="input_elasticache_node_type"></a> [elasticache\_node\_type](#input\_elasticache\_node\_type) | ElastiCache node type for Redis | `string` | `"cache.t4g.small"` | no |
-| <a name="input_elasticache_parameter_group_name"></a> [elasticache\_parameter\_group\_name](#input\_elasticache\_parameter\_group\_name) | Optional ElastiCache parameter group name | `string` | `null` | no |
-| <a name="input_elasticache_port"></a> [elasticache\_port](#input\_elasticache\_port) | Redis port for ElastiCache and GitLab external Redis connection | `number` | `6379` | no |
-| <a name="input_elasticache_replication_group_id"></a> [elasticache\_replication\_group\_id](#input\_elasticache\_replication\_group\_id) | Replication group ID for ElastiCache. If null, generated from cluster name | `string` | `null` | no |
-| <a name="input_elasticache_security_group_ids"></a> [elasticache\_security\_group\_ids](#input\_elasticache\_security\_group\_ids) | Additional security group IDs attached to ElastiCache alongside the module-managed security group | `list(string)` | `[]` | no |
-| <a name="input_elasticache_snapshot_retention_limit"></a> [elasticache\_snapshot\_retention\_limit](#input\_elasticache\_snapshot\_retention\_limit) | Number of days to retain ElastiCache snapshots (currently only 0 is supported) | `number` | `0` | no |
-| <a name="input_elasticache_subnet_group_name"></a> [elasticache\_subnet\_group\_name](#input\_elasticache\_subnet\_group\_name) | Existing ElastiCache subnet group name. If null, module creates one | `string` | `null` | no |
-| <a name="input_elasticache_transit_encryption_enabled"></a> [elasticache\_transit\_encryption\_enabled](#input\_elasticache\_transit\_encryption\_enabled) | Enable in-transit encryption for ElastiCache | `bool` | `false` | no |
 | <a name="input_enable_cluster_creator_admin_permissions"></a> [enable\_cluster\_creator\_admin\_permissions](#input\_enable\_cluster\_creator\_admin\_permissions) | Grant cluster-admin permissions to the Terraform caller | `bool` | `true` | no |
-| <a name="input_enable_elasticache"></a> [enable\_elasticache](#input\_enable\_elasticache) | Create and configure an ElastiCache Redis replication group for GitLab | `bool` | `false` | no |
 | <a name="input_enable_nat_gateway"></a> [enable\_nat\_gateway](#input\_enable\_nat\_gateway) | Whether to enable NAT gateway(s) when create\_vpc is true | `bool` | `true` | no |
+| <a name="input_external_redis"></a> [external\_redis](#input\_external\_redis) | External Redis or ElastiCache connection settings. When null, the bundled GitLab Redis chart remains enabled | <pre>object({<br/>    host        = string<br/>    port        = optional(number, 6379)<br/>    tls_enabled = optional(bool, false)<br/>  })</pre> | `null` | no |
 | <a name="input_gitlab_chart_version"></a> [gitlab\_chart\_version](#input\_gitlab\_chart\_version) | GitLab Helm chart version | `string` | `"8.4.1"` | no |
 | <a name="input_gitlab_configure_cert_manager"></a> [gitlab\_configure\_cert\_manager](#input\_gitlab\_configure\_cert\_manager) | Whether GitLab chart should configure cert-manager integration | `bool` | `false` | no |
 | <a name="input_gitlab_create_namespace"></a> [gitlab\_create\_namespace](#input\_gitlab\_create\_namespace) | Whether the module should create the GitLab namespace | `bool` | `true` | no |
@@ -357,13 +347,11 @@ No modules.
 | <a name="output_cluster_endpoint"></a> [cluster\_endpoint](#output\_cluster\_endpoint) | EKS cluster endpoint |
 | <a name="output_cluster_name"></a> [cluster\_name](#output\_cluster\_name) | EKS cluster name |
 | <a name="output_cluster_oidc_provider_arn"></a> [cluster\_oidc\_provider\_arn](#output\_cluster\_oidc\_provider\_arn) | OIDC provider ARN associated with the cluster |
-| <a name="output_elasticache_primary_endpoint_address"></a> [elasticache\_primary\_endpoint\_address](#output\_elasticache\_primary\_endpoint\_address) | Primary endpoint address for ElastiCache Redis when enabled |
-| <a name="output_elasticache_replication_group_id"></a> [elasticache\_replication\_group\_id](#output\_elasticache\_replication\_group\_id) | ElastiCache replication group ID when enabled |
-| <a name="output_elasticache_transit_encryption_enabled"></a> [elasticache\_transit\_encryption\_enabled](#output\_elasticache\_transit\_encryption\_enabled) | Whether ElastiCache transit encryption is enabled |
 | <a name="output_gitlab_irsa_role_arn"></a> [gitlab\_irsa\_role\_arn](#output\_gitlab\_irsa\_role\_arn) | IRSA role ARN used by GitLab service accounts |
 | <a name="output_gitlab_namespace"></a> [gitlab\_namespace](#output\_gitlab\_namespace) | GitLab namespace |
 | <a name="output_gitlab_redis_auth_enabled"></a> [gitlab\_redis\_auth\_enabled](#output\_gitlab\_redis\_auth\_enabled) | Whether Redis auth is enabled in GitLab chart values for external Redis |
 | <a name="output_gitlab_redis_chart_install"></a> [gitlab\_redis\_chart\_install](#output\_gitlab\_redis\_chart\_install) | Whether bundled Redis remains enabled in the GitLab chart values |
+| <a name="output_gitlab_redis_external_host"></a> [gitlab\_redis\_external\_host](#output\_gitlab\_redis\_external\_host) | Configured external Redis host in GitLab chart values |
 | <a name="output_gitlab_redis_external_host_configured"></a> [gitlab\_redis\_external\_host\_configured](#output\_gitlab\_redis\_external\_host\_configured) | Whether external Redis host is configured in GitLab chart values |
 | <a name="output_gitlab_redis_external_port"></a> [gitlab\_redis\_external\_port](#output\_gitlab\_redis\_external\_port) | Configured external Redis port in GitLab chart values |
 | <a name="output_gitlab_redis_external_rediss_enabled"></a> [gitlab\_redis\_external\_rediss\_enabled](#output\_gitlab\_redis\_external\_rediss\_enabled) | Whether rediss/TLS is enabled for external Redis in GitLab chart values |
