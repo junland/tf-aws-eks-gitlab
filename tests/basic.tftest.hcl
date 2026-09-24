@@ -87,7 +87,7 @@ run "plan_with_existing_network_and_secrets" {
   }
 
   assert {
-    condition     = length(aws_eks_cluster.this.encryption_config) == 1 && aws_eks_cluster.this.encryption_config[0].resources == ["secrets"]
+    condition     = length(aws_eks_cluster.this.encryption_config) == 1 && length(aws_eks_cluster.this.encryption_config[0].resources) == 1 && contains(tolist(aws_eks_cluster.this.encryption_config[0].resources), "secrets")
     error_message = "The EKS cluster should require envelope encryption for Kubernetes secrets."
   }
 
