@@ -64,16 +64,16 @@ variable "enable_cluster_encryption" {
 }
 
 variable "cluster_encryption_key_arn" {
-  description = "Existing KMS key ARN for EKS secret envelope encryption. If null and encryption is enabled, the module creates one."
+  description = "Existing KMS key or alias ARN for EKS secret envelope encryption. If null and encryption is enabled, the module creates one."
   type        = string
   default     = null
 
   validation {
     condition = var.cluster_encryption_key_arn == null ? true : can(regex(
-      "^arn:[^:]+:kms:[^:]+:[0-9]{12}:key/[0-9A-Fa-f-]+$",
+      "^arn:[^:]+:kms:[^:]+:[0-9]{12}:(key/[0-9A-Fa-f-]+|alias/[A-Za-z0-9/_-]+)$",
       var.cluster_encryption_key_arn
     ))
-    error_message = "cluster_encryption_key_arn must be null or a valid KMS key ARN."
+    error_message = "cluster_encryption_key_arn must be null or a valid KMS key or alias ARN."
   }
 }
 

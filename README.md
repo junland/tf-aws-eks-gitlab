@@ -122,7 +122,7 @@ module "gitlab_eks" {
 
 - `cluster_authentication_mode` defaults to `API_AND_CONFIG_MAP` and supports `API` or `API_AND_CONFIG_MAP`.
 - Set `enable_cluster_encryption = true` to enable EKS secret envelope encryption.
-- Leave `cluster_encryption_key_arn = null` to let the module create a KMS key, or provide a non-empty existing KMS key ARN.
+- Leave `cluster_encryption_key_arn = null` to let the module create a KMS key, or provide an existing non-empty KMS key or alias ARN.
 - Do not set `cluster_encryption_key_arn` unless `enable_cluster_encryption` is `true`.
 
 ---
@@ -276,7 +276,7 @@ No modules.
 | <a name="input_cluster_enabled_log_types"></a> [cluster\_enabled\_log\_types](#input\_cluster\_enabled\_log\_types) | EKS control plane logs to enable | `list(string)` | <pre>[<br/>  "api",<br/>  "audit",<br/>  "authenticator",<br/>  "controllerManager",<br/>  "scheduler"<br/>]</pre> | no |
 | <a name="input_cluster_endpoint_private_access"></a> [cluster\_endpoint\_private\_access](#input\_cluster\_endpoint\_private\_access) | Whether the EKS API endpoint is privately accessible | `bool` | `true` | no |
 | <a name="input_cluster_endpoint_public_access"></a> [cluster\_endpoint\_public\_access](#input\_cluster\_endpoint\_public\_access) | Whether the EKS API endpoint is publicly accessible | `bool` | `true` | no |
-| <a name="input_cluster_encryption_key_arn"></a> [cluster\_encryption\_key\_arn](#input\_cluster\_encryption\_key\_arn) | Existing KMS key ARN for EKS secret envelope encryption. If null and encryption is enabled, the module creates one. | `string` | `null` | no |
+| <a name="input_cluster_encryption_key_arn"></a> [cluster\_encryption\_key\_arn](#input\_cluster\_encryption\_key\_arn) | Existing KMS key or alias ARN for EKS secret envelope encryption. If null and encryption is enabled, the module creates one. | `string` | `null` | no |
 | <a name="input_cluster_name"></a> [cluster\_name](#input\_cluster\_name) | EKS cluster name. If null, generated from name\_prefix | `string` | `null` | no |
 | <a name="input_cluster_service_ipv4_cidr"></a> [cluster\_service\_ipv4\_cidr](#input\_cluster\_service\_ipv4\_cidr) | CIDR block for Kubernetes service IPs | `string` | `null` | no |
 | <a name="input_create_gitlab_security_group"></a> [create\_gitlab\_security\_group](#input\_create\_gitlab\_security\_group) | Create dedicated security group and attach it to GitLab load balancer | `bool` | `false` | no |
