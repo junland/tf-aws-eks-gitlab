@@ -53,6 +53,26 @@ output "object_storage_secret_name" {
   value       = local.object_storage_secret_name
 }
 
+output "rds_cluster_identifier" {
+  description = "RDS cluster identifier when enabled"
+  value       = var.enable_rds ? local.rds_cluster_identifier : null
+}
+
+output "rds_cluster_endpoint" {
+  description = "Primary endpoint address for the RDS cluster when enabled"
+  value       = var.enable_rds ? aws_rds_cluster.gitlab[0].endpoint : null
+}
+
+output "rds_cluster_reader_endpoint" {
+  description = "Reader endpoint address for the RDS cluster when enabled"
+  value       = var.enable_rds ? aws_rds_cluster.gitlab[0].reader_endpoint : null
+}
+
+output "s3_bucket_ids" {
+  description = "Map of GitLab object storage classes to S3 bucket IDs when bucket creation is enabled"
+  value       = var.enable_s3_buckets ? local.s3_bucket_names : null
+}
+
 output "elasticache_replication_group_id" {
   description = "ElastiCache replication group ID when enabled"
   value       = var.enable_elasticache ? local.elasticache_replication_group_id : null

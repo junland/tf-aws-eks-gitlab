@@ -18,7 +18,7 @@ resource "kubernetes_secret" "postgresql" {
   }
 
   data = {
-    (var.postgresql_existing_secret_key) = var.postgresql_password
+    (var.postgresql_existing_secret_key) = local.postgresql_password
   }
 
   type = "Opaque"

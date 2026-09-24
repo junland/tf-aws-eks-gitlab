@@ -19,26 +19,12 @@ module "gitlab_eks" {
     }
   }
 
-  postgresql_host                 = var.postgresql_host
-  postgresql_database             = var.postgresql_database
-  postgresql_username             = var.postgresql_username
-  postgresql_existing_secret_name = var.postgresql_existing_secret_name
+  enable_rds         = true
+  enable_elasticache = true
+  enable_s3_buckets  = true
 
-  s3_region               = var.s3_region
-  s3_existing_secret_name = var.s3_existing_secret_name
-
-  s3_buckets = {
-    artifacts        = "gitlab-prod-artifacts"
-    uploads          = "gitlab-prod-uploads"
-    packages         = "gitlab-prod-packages"
-    lfs              = "gitlab-prod-lfs"
-    terraform_state  = "gitlab-prod-terraform-state"
-    dependency_proxy = "gitlab-prod-dependency-proxy"
-    ci_secure_files  = "gitlab-prod-secure-files"
-    external_diffs   = "gitlab-prod-external-diffs"
-    backups          = "gitlab-prod-backups"
-    tmp              = "gitlab-prod-tmp"
-  }
+  rds_instance_class = "db.r6g.large"
+  s3_region          = var.aws_region
 
   gitlab_ingress_annotations = {
     "kubernetes.io/ingress.class" = "nginx"

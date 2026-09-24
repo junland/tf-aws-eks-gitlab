@@ -15,10 +15,21 @@ check "created_network_inputs" {
   }
 }
 
+check "postgresql_connection_inputs" {
+  assert {
+    condition = var.enable_rds || (
+      var.postgresql_host != null &&
+      var.postgresql_database != null &&
+      var.postgresql_username != null
+    )
+    error_message = "Provide postgresql_host, postgresql_database, and postgresql_username unless enable_rds is true."
+  }
+}
+
 check "postgresql_secret_or_password" {
   assert {
-    condition     = var.postgresql_existing_secret_name != null || var.postgresql_password != null
-    error_message = "Provide postgresql_existing_secret_name or postgresql_password."
+    condition     = var.enable_rds || var.postgresql_existing_secret_name != null || var.postgresql_password != null
+    error_message = "Provide postgresql_existing_secret_name or postgresql_password unless enable_rds is true."
   }
 }
 
@@ -106,6 +117,20 @@ check "cluster_addons_supported_fields" {
         ]
       ]))
     )
+  }
+}
+
+check "rds_instance_count" {
+  assert {
+    condition     = !var.enable_rds || var.rds_instance_count > 0
+    error_message = "When enable_rds is true, rds_instance_count must be greater than 0."
+  }
+}
+
+check "rds_cluster_identifier" {
+  assert {
+    condition     = !var.enable_rds || length(regexall("^[a-z](?:[a-z0-9-]{0,61}[a-z0-9])?$", local.rds_cluster_identifier)) > 0
+    error_message = "RDS cluster identifier is normalized to 1-63 lowercase letters, digits, and hyphens, must start with a letter, and must not end with a hyphen."
   }
 }
 

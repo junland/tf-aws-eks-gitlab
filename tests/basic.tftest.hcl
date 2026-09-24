@@ -52,7 +52,24 @@ mock_provider "aws" {
 
   mock_resource "aws_elasticache_replication_group" {
     defaults = {
-      primary_endpoint_address = "redis.example.test"
+      primary_endpoint_address   = "redis.example.test"
+      transit_encryption_enabled = false
+    }
+  }
+
+  mock_resource "aws_rds_cluster" {
+    defaults = {
+      endpoint        = "postgres.example.test"
+      reader_endpoint = "postgres-ro.example.test"
+      engine          = "aurora-postgresql"
+      engine_version  = "15.4"
+      id              = "unit-eks-gitlab-postgresql"
+    }
+  }
+
+  mock_resource "aws_s3_bucket" {
+    defaults = {
+      id = "bucket-id"
     }
   }
 }
@@ -60,6 +77,8 @@ mock_provider "aws" {
 mock_provider "helm" {}
 
 mock_provider "kubernetes" {}
+
+mock_provider "random" {}
 
 # Common global variables set across test runs
 variables {
@@ -135,6 +154,16 @@ run "fails_without_existing_network_inputs" {
   expect_failures = [check.existing_network_inputs]
 }
 
+run "fails_without_postgresql_connection_inputs" {
+  command = plan
+
+  variables {
+    postgresql_host = null
+  }
+
+  expect_failures = [check.postgresql_connection_inputs]
+}
+
 run "fails_without_postgresql_credentials" {
   command = plan
 
@@ -154,6 +183,63 @@ run "fails_without_s3_authentication" {
   }
 
   expect_failures = [check.s3_authentication_inputs]
+}
+
+run "plan_with_rds_and_s3_buckets_enabled" {
+  command = plan
+
+  variables {
+    enable_rds                      = true
+    enable_s3_buckets               = true
+    gitlab_release_name             = "gitlab-prod"
+    postgresql_existing_secret_name = null
+    s3_existing_secret_name         = null
+  }
+
+  assert {
+    condition     = output.rds_cluster_identifier == "unit-eks-gitlab-postgresql"
+    error_message = "The RDS cluster identifier should default from the cluster name."
+  }
+
+  assert {
+    condition     = output.postgresql_secret_name == "gitlab-prod-postgresql"
+    error_message = "The PostgreSQL secret name should default from the release name for managed RDS."
+  }
+
+  assert {
+    condition     = output.object_storage_secret_name == "gitlab-prod-object-storage"
+    error_message = "The object storage secret name should default from the release name for module-managed S3 buckets."
+  }
+
+  assert {
+    condition     = output.s3_bucket_ids != null && output.s3_bucket_ids.artifacts == "unit-eks-gitlab-artifacts" && length(keys(output.s3_bucket_ids)) == 10
+    error_message = "The module should expose all 10 GitLab object storage bucket IDs when bucket creation is enabled."
+  }
+}
+
+run "fails_with_invalid_rds_instance_count" {
+  command = plan
+
+  variables {
+    enable_rds         = true
+    rds_instance_count = 0
+  }
+
+  expect_failures = [check.rds_instance_count]
+}
+
+run "normalizes_invalid_rds_cluster_identifier" {
+  command = plan
+
+  variables {
+    enable_rds             = true
+    rds_cluster_identifier = "1invalid db"
+  }
+
+  assert {
+    condition     = output.rds_cluster_identifier == "a1invalid-db"
+    error_message = "RDS cluster identifiers should be normalized to start with a letter and replace invalid characters with hyphens."
+  }
 }
 
 run "plan_with_elasticache_enabled" {

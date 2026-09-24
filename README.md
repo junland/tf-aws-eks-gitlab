@@ -13,10 +13,12 @@ A production-ready Terraform module that provisions an Amazon EKS cluster and de
 - **Elastic Kubernetes Service (EKS)**: Configurable Kubernetes version, managed node groups, custom cluster networking, and IAM roles.
 - **Flexible VPC Networking**: Provisions a new managed VPC with public/private subnets or integrates with existing AWS network infrastructure.
 - **Official GitLab Helm Chart**: Deploys GitLab using the official Helm provider and chart (`https://charts.gitlab.io`).
-- **External Database & Object Storage**: Offloads state to external PostgreSQL and S3-compatible storage for high availability and scalability.
+- **External or Module-Managed State Services**: Supports external/BYO PostgreSQL and S3-compatible storage, or optional module-managed Aurora PostgreSQL and GitLab object storage buckets.
 - **Secure Secret Management**: Integrates with pre-existing Kubernetes Secrets or provisions them securely via Terraform inputs.
 - **AWS IRSA Integration**: Supports IAM Roles for Service Accounts (IRSA) for native, keyless AWS S3 authentication.
 - **Optional ElastiCache Redis**: Optional automated provisioning of Amazon ElastiCache Redis with automatic GitLab connection wiring.
+- **Optional Aurora PostgreSQL**: Optional automated provisioning of an Aurora PostgreSQL cluster with automatic GitLab connection wiring.
+- **Optional S3 Bucket Creation**: Optional automated provisioning of GitLab object storage buckets with versioning, encryption, and public access blocks.
 - **Production-Oriented**: Includes customizable defaults for ingress, TLS/cert-manager, autoscaling, and custom Helm value overrides.
 
 ---
@@ -36,6 +38,8 @@ This module follows standard Terraform practices with standard `_*.tf` file nami
 ├── _iam.tf             # IAM roles, policies, and IRSA configuration
 ├── _security_groups.tf # Security group rules for EKS & ElastiCache
 ├── _elasticache.tf     # AWS ElastiCache Redis replication group
+├── _rds.tf             # AWS Aurora PostgreSQL cluster resources
+├── _s3.tf              # AWS S3 buckets for GitLab object storage
 ├── _kubernetes.tf      # Kubernetes namespaces, secrets, and configs
 └── _helm.tf            # Helm release definition for GitLab
 ```
@@ -46,30 +50,35 @@ This module follows standard Terraform practices with standard `_*.tf` file nami
 
 | Category | Requirement | Description |
 | :--- | :--- | :--- |
-| **AWS** | IAM Permissions | Access to manage EKS, VPC, IAM, EC2, ElastiCache, and Route53. |
+| **AWS** | IAM Permissions | Access to manage EKS, VPC, IAM, EC2, ElastiCache, RDS, S3, and Route53. |
 | | DNS & TLS | Route53 domain delegation and active SSL/TLS certificates (or `cert-manager`). |
-| | Object Storage | S3 buckets configured with optional IRSA IAM policy access. |
-| **PostgreSQL** | External DB | Managed instance (e.g., AWS RDS/Aurora or self-hosted) with port `5432` accessible from EKS nodes. |
+| | Object Storage | Existing S3 buckets or permission to let the module create and manage GitLab object storage buckets. |
+| **PostgreSQL** | Database | External PostgreSQL or permission to let the module create and manage an Aurora PostgreSQL cluster accessible from EKS nodes. |
 | **Tools** | CLI Utilities | `terraform` $\ge$ 1.3.0, `aws-cli`, and network access to AWS APIs. |
 
 ---
 
 ## External Dependencies Setup
 
-### 1. External PostgreSQL
-The module expects an existing PostgreSQL database instance.
+### 1. PostgreSQL
+The module supports either an existing PostgreSQL database instance or a module-managed Aurora PostgreSQL cluster.
 
 * **Secret Strategies**:
   * **Option A (Preferred)**: Provide an existing Kubernetes Secret name via `postgresql_existing_secret_name` and key via `postgresql_existing_secret_key`.
-  * **Option B**: Pass `postgresql_password` directly to allow the module to provision the Kubernetes Secret in the target namespace.
+  * **Option B**: Pass `postgresql_password` directly to allow the module to provision the Kubernetes Secret in the target namespace for an external database.
+  * **Option C**: Set `enable_rds = true` to create an Aurora PostgreSQL cluster. If `rds_master_password` is null, the module generates one and provisions the Kubernetes Secret automatically.
 
-### 2. External S3 Object Storage
-GitLab relies on S3-compatible object storage for artifacts, uploads, LFS, backups, etc.
+### 2. S3 Object Storage
+GitLab relies on S3-compatible object storage for artifacts, uploads, LFS, backups, etc. The module supports existing bucket names or optional bucket creation.
 
 * **Authentication Strategies**:
   * **IAM Roles for Service Accounts (IRSA)**: Set `s3_use_iam_profile = true` (Recommended for AWS S3).
   * **Existing Secret**: Provide `s3_existing_secret_name` containing object storage connection configuration.
   * **Static Credentials**: Pass `s3_access_key` and `s3_secret_key` for direct creation of the storage secret.
+
+* **Bucket Strategies**:
+  * **Option A**: Provide existing bucket names via `s3_buckets`.
+  * **Option B**: Set `enable_s3_buckets = true` to let the module create the GitLab object storage buckets from `s3_buckets` or the module defaults.
 
 ---
 
@@ -83,16 +92,13 @@ module "gitlab_eks" {
   name_prefix     = "gitlab-prod"
   gitlab_hostname = "gitlab.example.com"
 
-  # PostgreSQL Configuration
-  postgresql_host                 = "gitlab-db.example.internal"
-  postgresql_database             = "gitlabhq_production"
-  postgresql_username             = "gitlab"
-  postgresql_existing_secret_name = "gitlab-postgres-credentials"
+  enable_rds         = true
+  enable_elasticache = true
+  enable_s3_buckets  = true
 
-  # S3 Configuration
-  s3_region               = "us-east-1"
-  s3_use_iam_profile      = true
-  s3_existing_secret_name = "gitlab-object-storage-config"
+  # Optional: override managed service defaults
+  rds_instance_class = "db.r6g.large"
+  s3_region          = "us-east-1"
 
   # Optional Helm Value Overrides
   gitlab_extra_values = {
@@ -110,13 +116,15 @@ module "gitlab_eks" {
 | Variable | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
 | `gitlab_hostname` | `string` | *Required* | Primary domain name for the GitLab instance. |
-| `postgresql_host` | `string` | *Required* | Endpoint address for the external PostgreSQL database. |
-| `postgresql_database` | `string` | *Required* | Name of the PostgreSQL database. |
-| `postgresql_username` | `string` | *Required* | Username for PostgreSQL authentication. |
-| `s3_region` | `string` | *Required* | AWS region where the S3 buckets reside. |
+| `enable_rds` | `bool` | `false` | Provisions an Aurora PostgreSQL cluster and wires it to GitLab. |
+| `enable_s3_buckets` | `bool` | `false` | Provisions GitLab object storage buckets and wires them to GitLab. |
+| `postgresql_host` | `string` | `null` | Endpoint address for the external PostgreSQL database when `enable_rds` is `false`. |
+| `postgresql_database` | `string` | `null` | Name of the external PostgreSQL database when `enable_rds` is `false`. |
+| `postgresql_username` | `string` | `null` | Username for external PostgreSQL authentication when `enable_rds` is `false`. |
+| `s3_region` | `string` | `null` | AWS region where the S3 buckets reside. Defaults to `aws_region` when unset. |
 | `create_vpc` | `bool` | `true` | Set to `false` to deploy EKS inside an existing VPC. |
 | `enable_elasticache` | `bool` | `false` | Provisions an AWS ElastiCache Redis cluster and wires it to GitLab. |
-| `s3_use_iam_profile` | `bool` | `false` | Enables IRSA for AWS S3 authentication without static access keys. |
+| `s3_use_iam_profile` | `bool` | `true` | Enables IRSA for AWS S3 authentication without static access keys. |
 
 ---
 
@@ -133,11 +141,40 @@ Setting `enable_elasticache = true` automates the provisioning of Amazon ElastiC
 
 ---
 
+## Aurora PostgreSQL Integration
+
+Setting `enable_rds = true` automates the provisioning of an Aurora PostgreSQL cluster and wires GitLab to the module-managed cluster endpoint and credentials.
+
+### Current Capabilities & Constraints
+
+> [!IMPORTANT]
+> - **Engine**: Aurora PostgreSQL only (`aws_rds_cluster` + `aws_rds_cluster_instance`).
+> - **Credentials**: Provide `rds_master_password` or let the module generate one with the `random` provider.
+> - **Networking**: The cluster is deployed in the module's private subnets and restricted to the EKS cluster security group plus optional `rds_allowed_cidrs`.
+> - **Bundled PostgreSQL**: GitLab's bundled PostgreSQL chart remains disabled (`postgresql.install = false`).
+
+---
+
+## S3 Bucket Creation Integration
+
+Setting `enable_s3_buckets = true` automates creation of one S3 bucket per GitLab storage class (`artifacts`, `uploads`, `packages`, `lfs`, `terraform_state`, `dependency_proxy`, `ci_secure_files`, `external_diffs`, `backups`, and `tmp`).
+
+### Current Capabilities & Constraints
+
+> [!IMPORTANT]
+> - **Bucket Names**: Bucket names are derived from `s3_buckets` or the module defaults in `_locals.tf`.
+> - **Security**: Module-managed buckets enable AES256 default encryption and block all public access.
+> - **Versioning**: Versioning is enabled by default and controlled by `s3_bucket_versioning_enabled`.
+> - **Authentication**: GitLab still authenticates to S3 using IRSA, an existing secret, or static credentials exactly as in the BYO-bucket flow.
+
+---
+
 ## Security & Secret Management
 
-1. **State Safety**: Supplying raw credentials via Terraform variables (`postgresql_password`, `s3_secret_key`) stores sensitive values in the unencrypted Terraform state file.
+1. **State Safety**: Supplying raw credentials via Terraform variables (`postgresql_password`, `rds_master_password`, `s3_secret_key`) stores sensitive values in the unencrypted Terraform state file.
 2. **Recommended Practice**: Pre-create Kubernetes Secrets in the target namespace or populate them via AWS Secrets Manager / External Secrets Operator, referencing them using `postgresql_existing_secret_name` and `s3_existing_secret_name`.
-3. **Least Privilege**: Use `s3_use_iam_profile = true` to eliminate static S3 credentials completely via AWS IAM IRSA.
+3. **Generated RDS Passwords**: When `enable_rds = true` and `rds_master_password = null`, the module generates a password and stores it in Terraform state and the Kubernetes secret it creates.
+4. **Least Privilege**: Use `s3_use_iam_profile = true` to eliminate static S3 credentials completely via AWS IAM IRSA.
 
 ---
 
@@ -187,20 +224,22 @@ docker compose -f docker-compose.floci.yml down
 ## Requirements
 
 | Name | Version |
-| ---- | ------- |
+|------|---------|
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.5.0 |
-| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 5.100.0, < 6.0.0 |
-| <a name="requirement_helm"></a> [helm](#requirement\_helm) | >= 2.17.0, < 3.0.0 |
-| <a name="requirement_kubernetes"></a> [kubernetes](#requirement\_kubernetes) | >= 3.2.1, < 4.0.0 |
-| <a name="requirement_tls"></a> [tls](#requirement\_tls) | >= 4.0.0, < 5.0.0 |
+| <a name="requirement_aws"></a> [aws](#requirement\_aws) | <= 6.0.0 |
+| <a name="requirement_helm"></a> [helm](#requirement\_helm) | <= 3.0.0 |
+| <a name="requirement_kubernetes"></a> [kubernetes](#requirement\_kubernetes) | <= 4.0.0 |
+| <a name="requirement_random"></a> [random](#requirement\_random) | <= 4.0.0 |
+| <a name="requirement_tls"></a> [tls](#requirement\_tls) | <= 5.0.0 |
 
 ## Providers
 
 | Name | Version |
-| ---- | ------- |
-| <a name="provider_aws"></a> [aws](#provider\_aws) | 5.100.0 |
-| <a name="provider_helm"></a> [helm](#provider\_helm) | 2.17.0 |
+|------|---------|
+| <a name="provider_aws"></a> [aws](#provider\_aws) | 6.0.0 |
+| <a name="provider_helm"></a> [helm](#provider\_helm) | 3.0.0 |
 | <a name="provider_kubernetes"></a> [kubernetes](#provider\_kubernetes) | 3.2.1 |
+| <a name="provider_random"></a> [random](#provider\_random) | <= 4.0.0 |
 | <a name="provider_tls"></a> [tls](#provider\_tls) | 4.4.1 |
 
 ## Modules
@@ -210,7 +249,8 @@ No modules.
 ## Resources
 
 | Name | Type |
-| ---- | ---- |
+|------|------|
+| [aws_db_subnet_group.gitlab](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/db_subnet_group) | resource |
 | [aws_eip.nat](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eip) | resource |
 | [aws_eks_addon.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_addon) | resource |
 | [aws_eks_cluster.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_cluster) | resource |
@@ -226,27 +266,38 @@ No modules.
 | [aws_iam_role_policy_attachment.eks_node_group](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
 | [aws_internet_gateway.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/internet_gateway) | resource |
 | [aws_nat_gateway.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/nat_gateway) | resource |
+| [aws_rds_cluster.gitlab](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/rds_cluster) | resource |
+| [aws_rds_cluster_instance.gitlab](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/rds_cluster_instance) | resource |
 | [aws_route.private_nat](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/route) | resource |
 | [aws_route.public_internet](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/route) | resource |
 | [aws_route_table.private](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/route_table) | resource |
 | [aws_route_table.public](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/route_table) | resource |
 | [aws_route_table_association.private](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/route_table_association) | resource |
 | [aws_route_table_association.public](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/route_table_association) | resource |
+| [aws_s3_bucket.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket) | resource |
+| [aws_s3_bucket_public_access_block.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_public_access_block) | resource |
+| [aws_s3_bucket_server_side_encryption_configuration.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_server_side_encryption_configuration) | resource |
+| [aws_s3_bucket_versioning.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_versioning) | resource |
 | [aws_security_group.elasticache](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group) | resource |
 | [aws_security_group.gitlab_ingress](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group) | resource |
+| [aws_security_group.rds](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group) | resource |
 | [aws_subnet.private](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/subnet) | resource |
 | [aws_subnet.public](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/subnet) | resource |
 | [aws_vpc.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc) | resource |
 | [aws_vpc_security_group_egress_rule.elasticache_all](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_egress_rule) | resource |
 | [aws_vpc_security_group_egress_rule.gitlab_all](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_egress_rule) | resource |
+| [aws_vpc_security_group_egress_rule.rds_all](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_egress_rule) | resource |
 | [aws_vpc_security_group_ingress_rule.elasticache_from_cidr](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_ingress_rule) | resource |
 | [aws_vpc_security_group_ingress_rule.elasticache_from_eks_nodes](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_ingress_rule) | resource |
 | [aws_vpc_security_group_ingress_rule.gitlab_http](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_ingress_rule) | resource |
 | [aws_vpc_security_group_ingress_rule.gitlab_https](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_ingress_rule) | resource |
+| [aws_vpc_security_group_ingress_rule.rds_from_cidr](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_ingress_rule) | resource |
+| [aws_vpc_security_group_ingress_rule.rds_from_eks_nodes](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_ingress_rule) | resource |
 | [helm_release.gitlab](https://registry.terraform.io/providers/hashicorp/helm/latest/docs/resources/release) | resource |
 | [kubernetes_namespace.gitlab](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/namespace) | resource |
 | [kubernetes_secret.object_storage](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/secret) | resource |
 | [kubernetes_secret.postgresql](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/secret) | resource |
+| [random_password.rds](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/password) | resource |
 | [aws_caller_identity.current](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/caller_identity) | data source |
 | [aws_eks_cluster_auth.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/eks_cluster_auth) | data source |
 | [aws_iam_policy_document.eks_cluster_assume_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
@@ -259,7 +310,7 @@ No modules.
 ## Inputs
 
 | Name | Description | Type | Default | Required |
-| ---- | ----------- | ---- | ------- | :------: |
+|------|-------------|------|---------|:--------:|
 | <a name="input_aws_region"></a> [aws\_region](#input\_aws\_region) | AWS region where resources are deployed | `string` | `"us-east-1"` | no |
 | <a name="input_azs"></a> [azs](#input\_azs) | Availability zones for subnets when create\_vpc is true | `list(string)` | <pre>[<br/>  "us-east-1a",<br/>  "us-east-1b",<br/>  "us-east-1c"<br/>]</pre> | no |
 | <a name="input_cluster_addons"></a> [cluster\_addons](#input\_cluster\_addons) | EKS cluster add-ons used to create aws\_eks\_addon resources | <pre>map(object({<br/>    addon_version               = optional(string)<br/>    configuration_values        = optional(string)<br/>    preserve                    = optional(bool)<br/>    resolve_conflicts           = optional(string)<br/>    resolve_conflicts_on_create = optional(string)<br/>    resolve_conflicts_on_update = optional(string)<br/>    service_account_role_arn    = optional(string)<br/>  }))</pre> | <pre>{<br/>  "coredns": {},<br/>  "eks-pod-identity-agent": {},<br/>  "kube-proxy": {},<br/>  "vpc-cni": {}<br/>}</pre> | no |
@@ -290,6 +341,8 @@ No modules.
 | <a name="input_enable_cluster_creator_admin_permissions"></a> [enable\_cluster\_creator\_admin\_permissions](#input\_enable\_cluster\_creator\_admin\_permissions) | Grant cluster-admin permissions to the Terraform caller | `bool` | `true` | no |
 | <a name="input_enable_elasticache"></a> [enable\_elasticache](#input\_enable\_elasticache) | Create and configure an ElastiCache Redis replication group for GitLab | `bool` | `false` | no |
 | <a name="input_enable_nat_gateway"></a> [enable\_nat\_gateway](#input\_enable\_nat\_gateway) | Whether to enable NAT gateway(s) when create\_vpc is true | `bool` | `true` | no |
+| <a name="input_enable_rds"></a> [enable\_rds](#input\_enable\_rds) | Create and configure an Aurora PostgreSQL RDS cluster for GitLab | `bool` | `false` | no |
+| <a name="input_enable_s3_buckets"></a> [enable\_s3\_buckets](#input\_enable\_s3\_buckets) | Create and configure S3 buckets for GitLab object storage | `bool` | `false` | no |
 | <a name="input_gitlab_chart_version"></a> [gitlab\_chart\_version](#input\_gitlab\_chart\_version) | GitLab Helm chart version | `string` | `"8.4.1"` | no |
 | <a name="input_gitlab_configure_cert_manager"></a> [gitlab\_configure\_cert\_manager](#input\_gitlab\_configure\_cert\_manager) | Whether GitLab chart should configure cert-manager integration | `bool` | `false` | no |
 | <a name="input_gitlab_create_namespace"></a> [gitlab\_create\_namespace](#input\_gitlab\_create\_namespace) | Whether the module should create the GitLab namespace | `bool` | `true` | no |
@@ -322,27 +375,47 @@ No modules.
 | <a name="input_gitlab_webservice_min_replicas"></a> [gitlab\_webservice\_min\_replicas](#input\_gitlab\_webservice\_min\_replicas) | Minimum webservice replicas | `number` | `2` | no |
 | <a name="input_irsa_policy_json"></a> [irsa\_policy\_json](#input\_irsa\_policy\_json) | Custom IAM policy JSON for the IRSA role. If null, module creates scoped S3 access policy | `string` | `null` | no |
 | <a name="input_irsa_role_name"></a> [irsa\_role\_name](#input\_irsa\_role\_name) | Name for the optional IRSA role | `string` | `null` | no |
-| <a name="input_kubernetes_version"></a> [kubernetes\_version](#input\_kubernetes\_version) | Kubernetes version for EKS | `string` | `"1.30"` | no |
+| <a name="input_kubernetes_version"></a> [kubernetes\_version](#input\_kubernetes\_version) | Kubernetes version for EKS | `string` | `"1.36"` | no |
 | <a name="input_name_prefix"></a> [name\_prefix](#input\_name\_prefix) | Prefix used for naming AWS and Kubernetes resources | `string` | `"gitlab"` | no |
 | <a name="input_one_nat_gateway_per_az"></a> [one\_nat\_gateway\_per\_az](#input\_one\_nat\_gateway\_per\_az) | Use one NAT gateway per availability zone | `bool` | `false` | no |
-| <a name="input_postgresql_database"></a> [postgresql\_database](#input\_postgresql\_database) | External PostgreSQL database name | `string` | n/a | yes |
+| <a name="input_postgresql_database"></a> [postgresql\_database](#input\_postgresql\_database) | External PostgreSQL database name | `string` | `null` | no |
 | <a name="input_postgresql_existing_secret_key"></a> [postgresql\_existing\_secret\_key](#input\_postgresql\_existing\_secret\_key) | Key in Kubernetes secret containing PostgreSQL password | `string` | `"password"` | no |
 | <a name="input_postgresql_existing_secret_name"></a> [postgresql\_existing\_secret\_name](#input\_postgresql\_existing\_secret\_name) | Existing Kubernetes secret name with PostgreSQL password | `string` | `null` | no |
-| <a name="input_postgresql_host"></a> [postgresql\_host](#input\_postgresql\_host) | External PostgreSQL host | `string` | n/a | yes |
+| <a name="input_postgresql_host"></a> [postgresql\_host](#input\_postgresql\_host) | External PostgreSQL host | `string` | `null` | no |
 | <a name="input_postgresql_password"></a> [postgresql\_password](#input\_postgresql\_password) | External PostgreSQL password (used only when creating a Kubernetes secret) | `string` | `null` | no |
 | <a name="input_postgresql_port"></a> [postgresql\_port](#input\_postgresql\_port) | External PostgreSQL port | `number` | `5432` | no |
-| <a name="input_postgresql_username"></a> [postgresql\_username](#input\_postgresql\_username) | External PostgreSQL username | `string` | n/a | yes |
+| <a name="input_postgresql_username"></a> [postgresql\_username](#input\_postgresql\_username) | External PostgreSQL username | `string` | `null` | no |
 | <a name="input_private_subnet_cidrs"></a> [private\_subnet\_cidrs](#input\_private\_subnet\_cidrs) | Private subnet CIDRs when create\_vpc is true | `list(string)` | <pre>[<br/>  "10.0.1.0/24",<br/>  "10.0.2.0/24",<br/>  "10.0.3.0/24"<br/>]</pre> | no |
 | <a name="input_private_subnet_ids"></a> [private\_subnet\_ids](#input\_private\_subnet\_ids) | Existing private subnet IDs when create\_vpc is false | `list(string)` | `[]` | no |
 | <a name="input_public_subnet_cidrs"></a> [public\_subnet\_cidrs](#input\_public\_subnet\_cidrs) | Public subnet CIDRs when create\_vpc is true | `list(string)` | <pre>[<br/>  "10.0.101.0/24",<br/>  "10.0.102.0/24",<br/>  "10.0.103.0/24"<br/>]</pre> | no |
 | <a name="input_public_subnet_ids"></a> [public\_subnet\_ids](#input\_public\_subnet\_ids) | Existing public subnet IDs when create\_vpc is false | `list(string)` | `[]` | no |
+| <a name="input_rds_allowed_cidrs"></a> [rds\_allowed\_cidrs](#input\_rds\_allowed\_cidrs) | Additional CIDRs allowed to connect to Aurora PostgreSQL | `list(string)` | `[]` | no |
+| <a name="input_rds_apply_immediately"></a> [rds\_apply\_immediately](#input\_rds\_apply\_immediately) | Apply RDS modifications immediately | `bool` | `true` | no |
+| <a name="input_rds_backup_retention_period"></a> [rds\_backup\_retention\_period](#input\_rds\_backup\_retention\_period) | Number of days to retain RDS backups | `number` | `7` | no |
+| <a name="input_rds_cluster_identifier"></a> [rds\_cluster\_identifier](#input\_rds\_cluster\_identifier) | RDS cluster identifier. If null, generated from cluster name | `string` | `null` | no |
+| <a name="input_rds_database_name"></a> [rds\_database\_name](#input\_rds\_database\_name) | Database name for the Aurora PostgreSQL cluster | `string` | `"gitlabhq_production"` | no |
+| <a name="input_rds_deletion_protection"></a> [rds\_deletion\_protection](#input\_rds\_deletion\_protection) | Enable deletion protection for RDS | `bool` | `false` | no |
+| <a name="input_rds_engine_version"></a> [rds\_engine\_version](#input\_rds\_engine\_version) | Aurora PostgreSQL engine version | `string` | `"15.4"` | no |
+| <a name="input_rds_instance_class"></a> [rds\_instance\_class](#input\_rds\_instance\_class) | RDS instance class for Aurora PostgreSQL | `string` | `"db.r6g.large"` | no |
+| <a name="input_rds_instance_count"></a> [rds\_instance\_count](#input\_rds\_instance\_count) | Number of RDS cluster instances to create | `number` | `1` | no |
+| <a name="input_rds_master_password"></a> [rds\_master\_password](#input\_rds\_master\_password) | Master password for the Aurora PostgreSQL cluster. If null, generated automatically | `string` | `null` | no |
+| <a name="input_rds_master_username"></a> [rds\_master\_username](#input\_rds\_master\_username) | Master username for the Aurora PostgreSQL cluster | `string` | `"gitlab"` | no |
+| <a name="input_rds_port"></a> [rds\_port](#input\_rds\_port) | Port for Aurora PostgreSQL | `number` | `5432` | no |
+| <a name="input_rds_preferred_backup_window"></a> [rds\_preferred\_backup\_window](#input\_rds\_preferred\_backup\_window) | Preferred backup window for RDS | `string` | `null` | no |
+| <a name="input_rds_preferred_maintenance_window"></a> [rds\_preferred\_maintenance\_window](#input\_rds\_preferred\_maintenance\_window) | Preferred maintenance window for RDS | `string` | `null` | no |
+| <a name="input_rds_security_group_ids"></a> [rds\_security\_group\_ids](#input\_rds\_security\_group\_ids) | Additional security group IDs attached to RDS alongside the module-managed security group | `list(string)` | `[]` | no |
+| <a name="input_rds_skip_final_snapshot"></a> [rds\_skip\_final\_snapshot](#input\_rds\_skip\_final\_snapshot) | Skip final snapshot on RDS deletion | `bool` | `true` | no |
+| <a name="input_rds_storage_encrypted"></a> [rds\_storage\_encrypted](#input\_rds\_storage\_encrypted) | Enable storage encryption for RDS | `bool` | `true` | no |
+| <a name="input_rds_subnet_group_name"></a> [rds\_subnet\_group\_name](#input\_rds\_subnet\_group\_name) | Existing RDS subnet group name. If null, module creates one | `string` | `null` | no |
 | <a name="input_s3_access_key"></a> [s3\_access\_key](#input\_s3\_access\_key) | S3 access key (used only when creating a Kubernetes secret and IAM profile auth is disabled) | `string` | `null` | no |
+| <a name="input_s3_bucket_force_destroy"></a> [s3\_bucket\_force\_destroy](#input\_s3\_bucket\_force\_destroy) | Allow Terraform to delete non-empty GitLab object storage buckets | `bool` | `false` | no |
+| <a name="input_s3_bucket_versioning_enabled"></a> [s3\_bucket\_versioning\_enabled](#input\_s3\_bucket\_versioning\_enabled) | Enable versioning on module-managed GitLab object storage buckets | `bool` | `true` | no |
 | <a name="input_s3_buckets"></a> [s3\_buckets](#input\_s3\_buckets) | GitLab object storage bucket names | <pre>object({<br/>    artifacts        = optional(string)<br/>    uploads          = optional(string)<br/>    packages         = optional(string)<br/>    lfs              = optional(string)<br/>    terraform_state  = optional(string)<br/>    dependency_proxy = optional(string)<br/>    ci_secure_files  = optional(string)<br/>    external_diffs   = optional(string)<br/>    backups          = optional(string)<br/>    tmp              = optional(string)<br/>  })</pre> | `{}` | no |
 | <a name="input_s3_endpoint"></a> [s3\_endpoint](#input\_s3\_endpoint) | Custom S3 endpoint URL for S3-compatible object storage | `string` | `null` | no |
 | <a name="input_s3_existing_secret_key"></a> [s3\_existing\_secret\_key](#input\_s3\_existing\_secret\_key) | Key in Kubernetes secret containing object storage connection YAML | `string` | `"connection"` | no |
 | <a name="input_s3_existing_secret_name"></a> [s3\_existing\_secret\_name](#input\_s3\_existing\_secret\_name) | Existing Kubernetes secret with object storage connection YAML | `string` | `null` | no |
 | <a name="input_s3_force_path_style"></a> [s3\_force\_path\_style](#input\_s3\_force\_path\_style) | Use path-style S3 requests | `bool` | `true` | no |
-| <a name="input_s3_region"></a> [s3\_region](#input\_s3\_region) | S3 object storage region | `string` | n/a | yes |
+| <a name="input_s3_region"></a> [s3\_region](#input\_s3\_region) | S3 object storage region | `string` | `null` | no |
 | <a name="input_s3_secret_key"></a> [s3\_secret\_key](#input\_s3\_secret\_key) | S3 secret key (used only when creating a Kubernetes secret and IAM profile auth is disabled) | `string` | `null` | no |
 | <a name="input_s3_use_iam_profile"></a> [s3\_use\_iam\_profile](#input\_s3\_use\_iam\_profile) | Use IAM role credentials from pod identity instead of static access keys | `bool` | `true` | no |
 | <a name="input_single_nat_gateway"></a> [single\_nat\_gateway](#input\_single\_nat\_gateway) | Use a single shared NAT gateway when create\_vpc is true | `bool` | `true` | no |
@@ -353,7 +426,7 @@ No modules.
 ## Outputs
 
 | Name | Description |
-| ---- | ----------- |
+|------|-------------|
 | <a name="output_cluster_endpoint"></a> [cluster\_endpoint](#output\_cluster\_endpoint) | EKS cluster endpoint |
 | <a name="output_cluster_name"></a> [cluster\_name](#output\_cluster\_name) | EKS cluster name |
 | <a name="output_cluster_oidc_provider_arn"></a> [cluster\_oidc\_provider\_arn](#output\_cluster\_oidc\_provider\_arn) | OIDC provider ARN associated with the cluster |
@@ -373,6 +446,10 @@ No modules.
 | <a name="output_postgresql_secret_name"></a> [postgresql\_secret\_name](#output\_postgresql\_secret\_name) | Kubernetes secret name for PostgreSQL credentials |
 | <a name="output_private_subnet_ids"></a> [private\_subnet\_ids](#output\_private\_subnet\_ids) | Private subnet IDs used by the cluster |
 | <a name="output_public_subnet_ids"></a> [public\_subnet\_ids](#output\_public\_subnet\_ids) | Public subnet IDs used by the cluster |
+| <a name="output_rds_cluster_endpoint"></a> [rds\_cluster\_endpoint](#output\_rds\_cluster\_endpoint) | Primary endpoint address for the RDS cluster when enabled |
+| <a name="output_rds_cluster_identifier"></a> [rds\_cluster\_identifier](#output\_rds\_cluster\_identifier) | RDS cluster identifier when enabled |
+| <a name="output_rds_cluster_reader_endpoint"></a> [rds\_cluster\_reader\_endpoint](#output\_rds\_cluster\_reader\_endpoint) | Reader endpoint address for the RDS cluster when enabled |
+| <a name="output_s3_bucket_ids"></a> [s3\_bucket\_ids](#output\_s3\_bucket\_ids) | Map of GitLab object storage classes to S3 bucket IDs when bucket creation is enabled |
 | <a name="output_vpc_id"></a> [vpc\_id](#output\_vpc\_id) | VPC ID used by the cluster |
 <!-- END_TF_DOCS -->
 

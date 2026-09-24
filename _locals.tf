@@ -14,6 +14,8 @@ locals {
   private_subnet_ids = var.create_vpc ? aws_subnet.private[*].id : var.private_subnet_ids
   public_subnet_ids  = var.create_vpc ? aws_subnet.public[*].id : var.public_subnet_ids
 
+  s3_region = coalesce(var.s3_region, var.aws_region)
+
   s3_bucket_names = {
     artifacts        = coalesce(var.s3_buckets.artifacts, "${local.cluster_name}-gitlab-artifacts")
     uploads          = coalesce(var.s3_buckets.uploads, "${local.cluster_name}-gitlab-uploads")
@@ -30,12 +32,13 @@ locals {
   postgresql_secret_name     = coalesce(var.postgresql_existing_secret_name, "${var.gitlab_release_name}-postgresql")
   object_storage_secret_name = coalesce(var.s3_existing_secret_name, "${var.gitlab_release_name}-object-storage")
 
-  create_postgresql_secret = var.postgresql_existing_secret_name == null && var.postgresql_password != null
+  create_postgresql_secret = var.postgresql_existing_secret_name == null && (
+    var.enable_rds || var.postgresql_password != null
+  )
 
   create_object_storage_secret = (
     var.s3_existing_secret_name == null && (
-      var.s3_use_iam_profile ||
-      (
+      var.s3_use_iam_profile || (
         var.s3_access_key != null &&
         var.s3_secret_key != null
       )
@@ -45,7 +48,7 @@ locals {
   object_storage_connection_yaml = yamlencode(merge(
     {
       provider              = "AWS"
-      region                = var.s3_region
+      region                = local.s3_region
       use_iam_profile       = var.s3_use_iam_profile
       aws_signature_version = 4
       path_style            = var.s3_force_path_style
@@ -58,6 +61,40 @@ locals {
   ))
 
   manage_irsa_role = var.create_irsa_role && var.gitlab_irsa_role_arn == null
+
+  rds_cluster_identifier_sanitized = trim(
+    replace(
+      lower(coalesce(var.rds_cluster_identifier, "${local.cluster_name}-gitlab-postgresql")),
+      "/[^a-z0-9-]/",
+      "-"
+    ),
+    "-"
+  )
+
+  rds_cluster_identifier = substr(
+    local.rds_cluster_identifier_sanitized == "" ? "a" : (
+      length(regexall("^[a-z]", local.rds_cluster_identifier_sanitized)) > 0 ?
+      local.rds_cluster_identifier_sanitized :
+      "a${local.rds_cluster_identifier_sanitized}"
+    ),
+    0,
+    63
+  )
+
+  rds_subnet_group_name = !var.enable_rds ? null : (
+    var.rds_subnet_group_name != null ? var.rds_subnet_group_name : aws_db_subnet_group.gitlab[0].name
+  )
+
+  rds_security_group_ids = var.enable_rds ? distinct(concat(
+    [aws_security_group.rds[0].id],
+    var.rds_security_group_ids
+  )) : []
+
+  postgresql_host     = var.enable_rds ? aws_rds_cluster.gitlab[0].endpoint : var.postgresql_host
+  postgresql_port     = var.enable_rds ? var.rds_port : var.postgresql_port
+  postgresql_database = var.enable_rds ? var.rds_database_name : var.postgresql_database
+  postgresql_username = var.enable_rds ? var.rds_master_username : var.postgresql_username
+  postgresql_password = var.enable_rds ? coalesce(var.rds_master_password, random_password.rds[0].result) : var.postgresql_password
 
   elasticache_replication_group_id_sanitized = trim(
     replace(
@@ -127,10 +164,10 @@ locals {
       }
 
       psql = {
-        host     = var.postgresql_host
-        port     = var.postgresql_port
-        database = var.postgresql_database
-        username = var.postgresql_username
+        host     = local.postgresql_host
+        port     = local.postgresql_port
+        database = local.postgresql_database
+        username = local.postgresql_username
         password = {
           secret = local.postgresql_secret_name
           key    = var.postgresql_existing_secret_key

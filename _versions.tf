@@ -14,6 +14,10 @@ terraform {
       source  = "hashicorp/kubernetes"
       version = "<= 4.0.0"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "<= 4.0.0"
+    }
     tls = {
       source  = "hashicorp/tls"
       version = "<= 5.0.0"

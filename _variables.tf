@@ -348,6 +348,7 @@ variable "gitlab_extra_values" {
 variable "postgresql_host" {
   description = "External PostgreSQL host"
   type        = string
+  default     = null
 }
 
 variable "postgresql_port" {
@@ -359,11 +360,13 @@ variable "postgresql_port" {
 variable "postgresql_database" {
   description = "External PostgreSQL database name"
   type        = string
+  default     = null
 }
 
 variable "postgresql_username" {
   description = "External PostgreSQL username"
   type        = string
+  default     = null
 }
 
 variable "postgresql_password" {
@@ -388,6 +391,7 @@ variable "postgresql_existing_secret_key" {
 variable "s3_region" {
   description = "S3 object storage region"
   type        = string
+  default     = null
 }
 
 variable "s3_endpoint" {
@@ -449,6 +453,139 @@ variable "s3_buckets" {
     tmp              = optional(string)
   })
   default = {}
+}
+
+variable "enable_rds" {
+  description = "Create and configure an Aurora PostgreSQL RDS cluster for GitLab"
+  type        = bool
+  default     = false
+}
+
+variable "rds_cluster_identifier" {
+  description = "RDS cluster identifier. If null, generated from cluster name"
+  type        = string
+  default     = null
+}
+
+variable "rds_engine_version" {
+  description = "Aurora PostgreSQL engine version"
+  type        = string
+  default     = "15.4"
+}
+
+variable "rds_instance_class" {
+  description = "RDS instance class for Aurora PostgreSQL"
+  type        = string
+  default     = "db.r6g.large"
+}
+
+variable "rds_instance_count" {
+  description = "Number of RDS cluster instances to create"
+  type        = number
+  default     = 1
+}
+
+variable "rds_database_name" {
+  description = "Database name for the Aurora PostgreSQL cluster"
+  type        = string
+  default     = "gitlabhq_production"
+}
+
+variable "rds_master_username" {
+  description = "Master username for the Aurora PostgreSQL cluster"
+  type        = string
+  default     = "gitlab"
+}
+
+variable "rds_master_password" {
+  description = "Master password for the Aurora PostgreSQL cluster. If null, generated automatically"
+  type        = string
+  sensitive   = true
+  default     = null
+}
+
+variable "rds_port" {
+  description = "Port for Aurora PostgreSQL"
+  type        = number
+  default     = 5432
+}
+
+variable "rds_subnet_group_name" {
+  description = "Existing RDS subnet group name. If null, module creates one"
+  type        = string
+  default     = null
+}
+
+variable "rds_security_group_ids" {
+  description = "Additional security group IDs attached to RDS alongside the module-managed security group"
+  type        = list(string)
+  default     = []
+}
+
+variable "rds_allowed_cidrs" {
+  description = "Additional CIDRs allowed to connect to Aurora PostgreSQL"
+  type        = list(string)
+  default     = []
+}
+
+variable "rds_backup_retention_period" {
+  description = "Number of days to retain RDS backups"
+  type        = number
+  default     = 7
+}
+
+variable "rds_preferred_backup_window" {
+  description = "Preferred backup window for RDS"
+  type        = string
+  default     = null
+}
+
+variable "rds_preferred_maintenance_window" {
+  description = "Preferred maintenance window for RDS"
+  type        = string
+  default     = null
+}
+
+variable "rds_apply_immediately" {
+  description = "Apply RDS modifications immediately"
+  type        = bool
+  default     = true
+}
+
+variable "rds_storage_encrypted" {
+  description = "Enable storage encryption for RDS"
+  type        = bool
+  default     = true
+}
+
+variable "rds_deletion_protection" {
+  description = "Enable deletion protection for RDS"
+  type        = bool
+  default     = false
+}
+
+variable "rds_skip_final_snapshot" {
+  description = "Skip final snapshot on RDS deletion"
+  type        = bool
+  default     = true
+}
+
+variable "enable_s3_buckets" {
+  description = "Create and configure S3 buckets for GitLab object storage"
+  type        = bool
+  default     = false
+}
+
+variable "s3_bucket_force_destroy" {
+  description = "Allow Terraform to delete non-empty GitLab object storage buckets"
+  type        = bool
+  default     = false
+}
+
+variable "s3_bucket_versioning_enabled" {
+  description = "Enable versioning on module-managed GitLab object storage buckets"
+  type        = bool
+  default     = true
 }
 
 variable "enable_elasticache" {
