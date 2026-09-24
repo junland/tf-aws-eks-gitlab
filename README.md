@@ -118,6 +118,12 @@ module "gitlab_eks" {
 | `create_vpc` | `bool` | `true` | Set to `false` to deploy EKS inside an existing VPC. |
 | `s3_use_iam_profile` | `bool` | `false` | Enables IRSA for AWS S3 authentication without static access keys. |
 
+### EKS Secret Encryption Inputs
+
+- Set `enable_cluster_encryption = true` to enable EKS secret envelope encryption.
+- Leave `cluster_encryption_key_arn = null` to let the module create a KMS key, or provide a non-empty existing KMS key ARN.
+- Do not set `cluster_encryption_key_arn` unless `enable_cluster_encryption` is `true`.
+
 ---
 
 ## ElastiCache Redis Integration

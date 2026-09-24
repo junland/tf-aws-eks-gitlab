@@ -75,7 +75,7 @@ variable "cluster_encryption_key_arn" {
         var.cluster_encryption_key_arn
       ))
     )
-    error_message = "cluster_encryption_key_arn must be a valid KMS key ARN."
+    error_message = "cluster_encryption_key_arn must be null, empty, or a valid KMS key ARN."
   }
 }
 
