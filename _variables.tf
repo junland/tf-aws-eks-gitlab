@@ -70,7 +70,7 @@ variable "cluster_encryption_key_arn" {
 
   validation {
     condition = var.cluster_encryption_key_arn == null ? true : can(regex(
-      "^arn:[^:]+:kms:[^:]+:[0-9]{12}:(key/[0-9A-Fa-f-]+|alias/[A-Za-z0-9/_-]+)$",
+      "^arn:[^:]+:kms:[^:]+:[0-9]{12}:(key/((mrk-)?[0-9A-Fa-f-]+)|alias/[A-Za-z0-9/_-]+)$",
       var.cluster_encryption_key_arn
     ))
     error_message = "cluster_encryption_key_arn must be null or a valid KMS key or alias ARN."
