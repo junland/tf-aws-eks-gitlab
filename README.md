@@ -239,7 +239,7 @@ docker compose -f docker-compose.floci.yml down
 | <a name="provider_aws"></a> [aws](#provider\_aws) | 6.0.0 |
 | <a name="provider_helm"></a> [helm](#provider\_helm) | 3.0.0 |
 | <a name="provider_kubernetes"></a> [kubernetes](#provider\_kubernetes) | 3.2.1 |
-| <a name="provider_random"></a> [random](#provider\_random) | <= 4.0.0 |
+| <a name="provider_random"></a> [random](#provider\_random) | 3.9.1 |
 | <a name="provider_tls"></a> [tls](#provider\_tls) | 4.4.1 |
 
 ## Modules
@@ -449,7 +449,7 @@ No modules.
 | <a name="output_rds_cluster_endpoint"></a> [rds\_cluster\_endpoint](#output\_rds\_cluster\_endpoint) | Primary endpoint address for the RDS cluster when enabled |
 | <a name="output_rds_cluster_identifier"></a> [rds\_cluster\_identifier](#output\_rds\_cluster\_identifier) | RDS cluster identifier when enabled |
 | <a name="output_rds_cluster_reader_endpoint"></a> [rds\_cluster\_reader\_endpoint](#output\_rds\_cluster\_reader\_endpoint) | Reader endpoint address for the RDS cluster when enabled |
-| <a name="output_s3_bucket_ids"></a> [s3\_bucket\_ids](#output\_s3\_bucket\_ids) | Map of GitLab object storage classes to S3 bucket IDs when bucket creation is enabled |
+| <a name="output_s3_bucket_ids"></a> [s3\_bucket\_ids](#output\_s3\_bucket\_ids) | Map of GitLab object storage classes to S3 bucket names/IDs when bucket creation is enabled |
 | <a name="output_vpc_id"></a> [vpc\_id](#output\_vpc\_id) | VPC ID used by the cluster |
 <!-- END_TF_DOCS -->
 

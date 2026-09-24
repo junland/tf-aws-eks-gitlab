@@ -69,7 +69,7 @@ output "rds_cluster_reader_endpoint" {
 }
 
 output "s3_bucket_ids" {
-  description = "Map of GitLab object storage classes to S3 bucket IDs when bucket creation is enabled"
+  description = "Map of GitLab object storage classes to S3 bucket names/IDs when bucket creation is enabled"
   value       = var.enable_s3_buckets ? local.s3_bucket_names : null
 }
 
