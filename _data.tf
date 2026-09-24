@@ -46,48 +46,6 @@ data "aws_iam_policy_document" "eks_secrets_encryption" {
   }
 
   statement {
-    sid = "AllowEKSClusterRoleKeyUsage"
-
-    actions = [
-      "kms:Decrypt",
-      "kms:DescribeKey",
-      "kms:Encrypt",
-      "kms:GenerateDataKey*",
-      "kms:ReEncrypt*"
-    ]
-
-    resources = ["*"]
-
-    principals {
-      type        = "AWS"
-      identifiers = [aws_iam_role.eks_cluster.arn]
-    }
-  }
-
-  statement {
-    sid = "AllowEKSClusterRoleGrantManagement"
-
-    actions = [
-      "kms:CreateGrant",
-      "kms:ListGrants",
-      "kms:RevokeGrant"
-    ]
-
-    resources = ["*"]
-
-    principals {
-      type        = "AWS"
-      identifiers = [aws_iam_role.eks_cluster.arn]
-    }
-
-    condition {
-      test     = "Bool"
-      variable = "kms:GrantIsForAWSResource"
-      values   = ["true"]
-    }
-  }
-
-  statement {
     sid = "AllowEKSServiceKeyUsage"
 
     actions = [
