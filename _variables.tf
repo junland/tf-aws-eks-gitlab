@@ -451,12 +451,6 @@ variable "s3_buckets" {
   default = {}
 }
 
-variable "enable_elasticache" {
-  description = "Create and configure an ElastiCache Redis replication group for GitLab"
-  type        = bool
-  default     = false
-}
-
 variable "elasticache_replication_group_id" {
   description = "Replication group ID for ElastiCache. If null, generated from cluster name"
   type        = string

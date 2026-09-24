@@ -78,14 +78,14 @@ locals {
     40
   )
 
-  elasticache_subnet_group_name = !var.enable_elasticache ? null : (
+  elasticache_subnet_group_name = (
     var.elasticache_subnet_group_name != null ? var.elasticache_subnet_group_name : aws_elasticache_subnet_group.gitlab[0].name
   )
 
-  elasticache_security_group_ids = var.enable_elasticache ? distinct(concat(
-    [aws_security_group.elasticache[0].id],
+  elasticache_security_group_ids = distinct(concat(
+    [aws_security_group.elasticache.id],
     var.elasticache_security_group_ids
-  )) : []
+  ))
 
   elasticache_connection_port = var.elasticache_port
 
@@ -180,21 +180,13 @@ locals {
         }
       }
 
-      redis = var.enable_elasticache ? {
-        host   = aws_elasticache_replication_group.gitlab[0].primary_endpoint_address
+      redis = {
+        host   = aws_elasticache_replication_group.gitlab.primary_endpoint_address
         port   = local.elasticache_connection_port
         scheme = var.elasticache_transit_encryption_enabled ? "rediss" : "redis"
         rediss = var.elasticache_transit_encryption_enabled
         auth = {
           enabled = false
-        }
-        } : {
-        host   = null
-        port   = null
-        scheme = null
-        rediss = null
-        auth = {
-          enabled = null
         }
       }
     }
@@ -205,7 +197,7 @@ locals {
 
 
     redis = {
-      install = !var.enable_elasticache
+      install = false
     }
 
     certmanager = {

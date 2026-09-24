@@ -16,7 +16,7 @@ A production-ready Terraform module that provisions an Amazon EKS cluster and de
 - **External Database & Object Storage**: Offloads state to external PostgreSQL and S3-compatible storage for high availability and scalability.
 - **Secure Secret Management**: Integrates with pre-existing Kubernetes Secrets or provisions them securely via Terraform inputs.
 - **AWS IRSA Integration**: Supports IAM Roles for Service Accounts (IRSA) for native, keyless AWS S3 authentication.
-- **Optional ElastiCache Redis**: Optional automated provisioning of Amazon ElastiCache Redis with automatic GitLab connection wiring.
+- **Managed ElastiCache Redis**: Automatically provisions Amazon ElastiCache Redis and wires GitLab to it.
 - **Production-Oriented**: Includes customizable defaults for ingress, TLS/cert-manager, autoscaling, and custom Helm value overrides.
 
 ---
@@ -115,14 +115,13 @@ module "gitlab_eks" {
 | `postgresql_username` | `string` | *Required* | Username for PostgreSQL authentication. |
 | `s3_region` | `string` | *Required* | AWS region where the S3 buckets reside. |
 | `create_vpc` | `bool` | `true` | Set to `false` to deploy EKS inside an existing VPC. |
-| `enable_elasticache` | `bool` | `false` | Provisions an AWS ElastiCache Redis cluster and wires it to GitLab. |
 | `s3_use_iam_profile` | `bool` | `false` | Enables IRSA for AWS S3 authentication without static access keys. |
 
 ---
 
 ## ElastiCache Redis Integration
 
-Setting `enable_elasticache = true` automates the provisioning of Amazon ElastiCache Redis and overrides the bundled Helm chart Redis (`redis.install = false`).
+The module always provisions Amazon ElastiCache Redis and overrides the bundled Helm chart Redis (`redis.install = false`).
 
 ### Current Capabilities & Constraints
 
@@ -288,7 +287,6 @@ No modules.
 | <a name="input_elasticache_subnet_group_name"></a> [elasticache\_subnet\_group\_name](#input\_elasticache\_subnet\_group\_name) | Existing ElastiCache subnet group name. If null, module creates one | `string` | `null` | no |
 | <a name="input_elasticache_transit_encryption_enabled"></a> [elasticache\_transit\_encryption\_enabled](#input\_elasticache\_transit\_encryption\_enabled) | Enable in-transit encryption for ElastiCache | `bool` | `false` | no |
 | <a name="input_enable_cluster_creator_admin_permissions"></a> [enable\_cluster\_creator\_admin\_permissions](#input\_enable\_cluster\_creator\_admin\_permissions) | Grant cluster-admin permissions to the Terraform caller | `bool` | `true` | no |
-| <a name="input_enable_elasticache"></a> [enable\_elasticache](#input\_enable\_elasticache) | Create and configure an ElastiCache Redis replication group for GitLab | `bool` | `false` | no |
 | <a name="input_enable_nat_gateway"></a> [enable\_nat\_gateway](#input\_enable\_nat\_gateway) | Whether to enable NAT gateway(s) when create\_vpc is true | `bool` | `true` | no |
 | <a name="input_gitlab_chart_version"></a> [gitlab\_chart\_version](#input\_gitlab\_chart\_version) | GitLab Helm chart version | `string` | `"8.4.1"` | no |
 | <a name="input_gitlab_configure_cert_manager"></a> [gitlab\_configure\_cert\_manager](#input\_gitlab\_configure\_cert\_manager) | Whether GitLab chart should configure cert-manager integration | `bool` | `false` | no |

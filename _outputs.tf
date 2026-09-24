@@ -54,18 +54,18 @@ output "object_storage_secret_name" {
 }
 
 output "elasticache_replication_group_id" {
-  description = "ElastiCache replication group ID when enabled"
-  value       = var.enable_elasticache ? local.elasticache_replication_group_id : null
+  description = "ElastiCache replication group ID"
+  value       = local.elasticache_replication_group_id
 }
 
 output "elasticache_primary_endpoint_address" {
-  description = "Primary endpoint address for ElastiCache Redis when enabled"
-  value       = var.enable_elasticache ? aws_elasticache_replication_group.gitlab[0].primary_endpoint_address : null
+  description = "Primary endpoint address for ElastiCache Redis"
+  value       = aws_elasticache_replication_group.gitlab.primary_endpoint_address
 }
 
 output "elasticache_transit_encryption_enabled" {
   description = "Whether ElastiCache transit encryption is enabled"
-  value       = var.enable_elasticache ? aws_elasticache_replication_group.gitlab[0].transit_encryption_enabled : null
+  value       = aws_elasticache_replication_group.gitlab.transit_encryption_enabled
 }
 
 output "gitlab_redis_chart_install" {

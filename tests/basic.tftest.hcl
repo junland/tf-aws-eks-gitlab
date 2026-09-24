@@ -97,8 +97,13 @@ run "plan_with_existing_network_and_secrets" {
   }
 
   assert {
-    condition     = output.gitlab_redis_external_host_configured == false
-    error_message = "External Redis host should be unset when ElastiCache is disabled."
+    condition     = output.gitlab_redis_external_host_configured
+    error_message = "External Redis host should be configured from the module-managed ElastiCache instance."
+  }
+
+  assert {
+    condition     = output.gitlab_redis_chart_install == false
+    error_message = "Bundled Redis should stay disabled because the module always manages ElastiCache."
   }
 }
 
@@ -156,12 +161,8 @@ run "fails_without_s3_authentication" {
   expect_failures = [check.s3_authentication_inputs]
 }
 
-run "plan_with_elasticache_enabled" {
+run "plan_with_default_elasticache" {
   command = plan
-
-  variables {
-    enable_elasticache = true
-  }
 
   assert {
     condition     = output.elasticache_replication_group_id == "unit-eks-gitlab-redis"
@@ -193,7 +194,6 @@ run "fails_with_invalid_elasticache_snapshot_retention_limit" {
   command = plan
 
   variables {
-    enable_elasticache                   = true
     elasticache_snapshot_retention_limit = -1
   }
 
@@ -204,7 +204,6 @@ run "fails_with_unsupported_elasticache_snapshot_retention_limit" {
   command = plan
 
   variables {
-    enable_elasticache                   = true
     elasticache_snapshot_retention_limit = 1
   }
 
@@ -215,7 +214,6 @@ run "normalizes_invalid_elasticache_replication_group_id" {
   command = plan
 
   variables {
-    enable_elasticache               = true
     elasticache_replication_group_id = "1invalid-group"
   }
 
@@ -229,7 +227,6 @@ run "normalizes_elasticache_replication_group_id_invalid_characters" {
   command = plan
 
   variables {
-    enable_elasticache               = true
     elasticache_replication_group_id = "Prod Redis!!"
   }
 
@@ -243,7 +240,6 @@ run "normalizes_elasticache_replication_group_id_empty_result" {
   command = plan
 
   variables {
-    enable_elasticache               = true
     elasticache_replication_group_id = "!!!"
   }
 
@@ -257,7 +253,6 @@ run "fails_when_elasticache_auth_token_is_set" {
   command = plan
 
   variables {
-    enable_elasticache     = true
     elasticache_auth_token = "placeholder-token"
   }
 
@@ -268,7 +263,6 @@ run "plan_with_elasticache_tls_enabled" {
   command = plan
 
   variables {
-    enable_elasticache                     = true
     elasticache_transit_encryption_enabled = true
   }
 
