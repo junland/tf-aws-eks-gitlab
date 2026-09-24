@@ -17,7 +17,7 @@ data "aws_iam_policy_document" "eks_cluster_assume_role" {
 
     principals {
       type        = "Service"
-      identifiers = ["eks.amazonaws.com"]
+      identifiers = ["eks.${data.aws_partition.current.dns_suffix}"]
     }
   }
 }
@@ -29,6 +29,62 @@ data "aws_iam_policy_document" "eks_node_group_assume_role" {
     principals {
       type        = "Service"
       identifiers = ["ec2.amazonaws.com"]
+    }
+  }
+}
+
+data "aws_iam_policy_document" "eks_secrets_encryption" {
+  statement {
+    sid       = "EnableRootPermissions"
+    actions   = ["kms:*"]
+    resources = ["*"]
+
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:${data.aws_partition.current.partition}:iam::${data.aws_caller_identity.current.account_id}:root"]
+    }
+  }
+
+  statement {
+    sid = "AllowEKSServiceKeyUsage"
+
+    actions = [
+      "kms:Decrypt",
+      "kms:DescribeKey",
+      "kms:Encrypt",
+      "kms:GenerateDataKey*",
+    ]
+
+    resources = ["*"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["eks.${data.aws_partition.current.dns_suffix}"]
+    }
+  }
+
+  statement {
+    sid = "AllowEKSServiceGrantManagement"
+
+    actions = [
+      "kms:CreateGrant",
+      "kms:DescribeKey",
+      "kms:ListGrants",
+      "kms:RevokeGrant",
+      "kms:RetireGrant",
+    ]
+
+    resources = ["*"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["eks.${data.aws_partition.current.dns_suffix}"]
+    }
+
+    condition {
+      test     = "Bool"
+      variable = "kms:GrantIsForAWSResource"
+      values   = ["true"]
     }
   }
 }

@@ -50,6 +50,22 @@ mock_provider "aws" {
     }
   }
 
+  mock_resource "aws_eks_cluster" {
+    defaults = {
+      identity = [{
+        oidc = [{
+          issuer = "https://oidc.eks.us-east-1.amazonaws.com/id/terraform-test"
+        }]
+      }]
+    }
+  }
+
+  mock_resource "aws_kms_key" {
+    defaults = {
+      arn = "arn:aws:kms:us-east-1:123456789012:key/87654321-4321-4321-4321-210987654321"
+    }
+  }
+
   mock_resource "aws_elasticache_replication_group" {
     defaults = {
       primary_endpoint_address = "redis.example.test"
@@ -60,6 +76,16 @@ mock_provider "aws" {
 mock_provider "helm" {}
 
 mock_provider "kubernetes" {}
+
+mock_provider "tls" {
+  mock_data "tls_certificate" {
+    defaults = {
+      certificates = [{
+        sha1_fingerprint = "0123456789abcdef0123456789abcdef01234567"
+      }]
+    }
+  }
+}
 
 # Common global variables set across test runs
 variables {
@@ -82,6 +108,21 @@ run "plan_with_existing_network_and_secrets" {
   command = plan
 
   assert {
+    condition     = aws_eks_cluster.this.access_config[0].authentication_mode == "API_AND_CONFIG_MAP"
+    error_message = "The EKS cluster should use the API-backed authentication mode instead of the deprecated CONFIG_MAP-only mode."
+  }
+
+  assert {
+    condition     = length(aws_eks_cluster.this.encryption_config) == 0
+    error_message = "The EKS cluster should not enable secret envelope encryption unless the feature is explicitly configured."
+  }
+
+  assert {
+    condition     = length(aws_kms_key.eks_secrets) == 0
+    error_message = "The module should not create an EKS encryption key unless secret envelope encryption is enabled."
+  }
+
+  assert {
     condition     = output.gitlab_namespace == "gitlab"
     error_message = "The default GitLab namespace should remain gitlab."
   }
@@ -102,7 +143,7 @@ run "plan_with_existing_network_and_secrets" {
   }
 
   assert {
-    condition     = output.gitlab_redis_external_host_configured == true
+    condition     = contains(keys(local.gitlab_helm_values.global.redis), "host")
     error_message = "External Redis host should be configured to the module-managed ElastiCache endpoint."
   }
 
@@ -110,6 +151,78 @@ run "plan_with_existing_network_and_secrets" {
     condition     = output.gitlab_redis_chart_install == false
     error_message = "Bundled Redis should stay disabled because the module always manages ElastiCache."
   }
+}
+
+run "plan_with_module_managed_cluster_encryption" {
+  command = plan
+
+  variables {
+    enable_cluster_encryption = true
+  }
+
+  assert {
+    condition     = length(aws_eks_cluster.this.encryption_config) == 1 && length(aws_eks_cluster.this.encryption_config[0].resources) == 1 && contains(tolist(aws_eks_cluster.this.encryption_config[0].resources), "secrets")
+    error_message = "The EKS cluster should require envelope encryption for Kubernetes secrets when encryption is enabled."
+  }
+
+  assert {
+    condition     = length(aws_kms_key.eks_secrets) == 1
+    error_message = "The module should create a dedicated KMS key for EKS secret encryption when encryption is enabled without an existing KMS key."
+  }
+}
+
+run "apply_with_module_managed_cluster_encryption" {
+  command = apply
+
+  variables {
+    enable_cluster_encryption = true
+    create_irsa_role          = false
+  }
+
+  assert {
+    condition     = aws_eks_cluster.this.encryption_config[0].provider[0].key_arn == aws_kms_key.eks_secrets[0].arn
+    error_message = "The EKS cluster should use the module-managed KMS key when encryption is enabled without an existing key ARN."
+  }
+}
+
+run "plan_with_existing_cluster_encryption_key" {
+  command = plan
+
+  variables {
+    enable_cluster_encryption = true
+    cluster_encryption_key_arn = "arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012"
+  }
+
+  assert {
+    condition     = length(aws_kms_key.eks_secrets) == 0
+    error_message = "The module should not create an EKS encryption key when an existing KMS key ARN is provided."
+  }
+
+  assert {
+    condition     = aws_eks_cluster.this.encryption_config[0].provider[0].key_arn == var.cluster_encryption_key_arn
+    error_message = "The EKS cluster should use the provided KMS key ARN for secret envelope encryption."
+  }
+}
+
+run "fails_with_cluster_encryption_key_without_enablement" {
+  command = plan
+
+  variables {
+    cluster_encryption_key_arn = "arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012"
+  }
+
+  expect_failures = [check.cluster_encryption_inputs]
+}
+
+run "fails_with_empty_cluster_encryption_key_arn" {
+  command = plan
+
+  variables {
+    enable_cluster_encryption = true
+    cluster_encryption_key_arn = ""
+  }
+
+  expect_failures = [var.cluster_encryption_key_arn]
 }
 
 run "plan_derives_secret_names_from_release_name" {

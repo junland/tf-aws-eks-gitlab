@@ -10,7 +10,7 @@ A production-ready Terraform module that provisions an Amazon EKS cluster and de
 
 ## Features
 
-- **Elastic Kubernetes Service (EKS)**: Configurable Kubernetes version, managed node groups, custom cluster networking, and IAM roles.
+- **Elastic Kubernetes Service (EKS)**: Configurable Kubernetes version, managed node groups, API-based cluster authentication, optional secret encryption with module-managed or existing KMS keys, and IAM roles.
 - **Flexible VPC Networking**: Provisions a new managed VPC with public/private subnets or integrates with existing AWS network infrastructure.
 - **Official GitLab Helm Chart**: Deploys GitLab using the official Helm provider and chart (`https://charts.gitlab.io`).
 - **External Database & Object Storage**: Offloads state to external PostgreSQL and S3-compatible storage for high availability and scalability.
@@ -33,6 +33,7 @@ This module follows standard Terraform practices with standard `_*.tf` file nami
 ├── _outputs.tf         # Module output definitions
 ├── _vpc.tf             # AWS VPC, subnet, and routing resources
 ├── _eks.tf             # EKS Cluster & managed node group definitions
+├── _kms.tf             # KMS key for EKS secret encryption
 ├── _iam.tf             # IAM roles, policies, and IRSA configuration
 ├── _security_groups.tf # Security group rules for EKS & ElastiCache
 ├── _elasticache.tf     # AWS ElastiCache Redis replication group
@@ -116,6 +117,14 @@ module "gitlab_eks" {
 | `s3_region` | `string` | *Required* | AWS region where the S3 buckets reside. |
 | `create_vpc` | `bool` | `true` | Set to `false` to deploy EKS inside an existing VPC. |
 | `s3_use_iam_profile` | `bool` | `false` | Enables IRSA for AWS S3 authentication without static access keys. |
+
+### EKS Secret Encryption Inputs
+
+- `cluster_authentication_mode` defaults to `API_AND_CONFIG_MAP` and supports `API` or `API_AND_CONFIG_MAP`.
+- Setting `cluster_authentication_mode = "API"` disables ConfigMap-backed `aws-auth` access management, so update your access workflow before switching existing clusters away from the default.
+- Set `enable_cluster_encryption = true` to enable EKS secret envelope encryption.
+- Leave `cluster_encryption_key_arn = null` to let the module create a KMS key, or provide an existing non-empty KMS key or alias ARN.
+- Do not set `cluster_encryption_key_arn` unless `enable_cluster_encryption` is `true`.
 
 ---
 
@@ -214,6 +223,7 @@ No modules.
 | [aws_eks_addon.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_addon) | resource |
 | [aws_eks_cluster.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_cluster) | resource |
 | [aws_eks_node_group.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_node_group) | resource |
+| [aws_kms_key.eks_secrets](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/kms_key) | resource |
 | [aws_elasticache_replication_group.gitlab](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/elasticache_replication_group) | resource |
 | [aws_elasticache_subnet_group.gitlab](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/elasticache_subnet_group) | resource |
 | [aws_iam_openid_connect_provider.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_openid_connect_provider) | resource |
@@ -250,6 +260,7 @@ No modules.
 | [aws_eks_cluster_auth.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/eks_cluster_auth) | data source |
 | [aws_iam_policy_document.eks_cluster_assume_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.eks_node_group_assume_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
+| [aws_iam_policy_document.eks_secrets_encryption](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.gitlab_irsa_assume_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.gitlab_irsa_s3](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_partition.current](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/partition) | data source |
@@ -262,9 +273,11 @@ No modules.
 | <a name="input_aws_region"></a> [aws\_region](#input\_aws\_region) | AWS region where resources are deployed | `string` | `"us-east-1"` | no |
 | <a name="input_azs"></a> [azs](#input\_azs) | Availability zones for subnets when create\_vpc is true | `list(string)` | <pre>[<br/>  "us-east-1a",<br/>  "us-east-1b",<br/>  "us-east-1c"<br/>]</pre> | no |
 | <a name="input_cluster_addons"></a> [cluster\_addons](#input\_cluster\_addons) | EKS cluster add-ons used to create aws\_eks\_addon resources | <pre>map(object({<br/>    addon_version               = optional(string)<br/>    configuration_values        = optional(string)<br/>    preserve                    = optional(bool)<br/>    resolve_conflicts           = optional(string)<br/>    resolve_conflicts_on_create = optional(string)<br/>    resolve_conflicts_on_update = optional(string)<br/>    service_account_role_arn    = optional(string)<br/>  }))</pre> | <pre>{<br/>  "coredns": {},<br/>  "eks-pod-identity-agent": {},<br/>  "kube-proxy": {},<br/>  "vpc-cni": {}<br/>}</pre> | no |
+| <a name="input_cluster_authentication_mode"></a> [cluster\_authentication\_mode](#input\_cluster\_authentication\_mode) | Authentication mode for the EKS cluster access API | `string` | `"API_AND_CONFIG_MAP"` | no |
 | <a name="input_cluster_enabled_log_types"></a> [cluster\_enabled\_log\_types](#input\_cluster\_enabled\_log\_types) | EKS control plane logs to enable | `list(string)` | <pre>[<br/>  "api",<br/>  "audit",<br/>  "authenticator",<br/>  "controllerManager",<br/>  "scheduler"<br/>]</pre> | no |
 | <a name="input_cluster_endpoint_private_access"></a> [cluster\_endpoint\_private\_access](#input\_cluster\_endpoint\_private\_access) | Whether the EKS API endpoint is privately accessible | `bool` | `true` | no |
 | <a name="input_cluster_endpoint_public_access"></a> [cluster\_endpoint\_public\_access](#input\_cluster\_endpoint\_public\_access) | Whether the EKS API endpoint is publicly accessible | `bool` | `true` | no |
+| <a name="input_cluster_encryption_key_arn"></a> [cluster\_encryption\_key\_arn](#input\_cluster\_encryption\_key\_arn) | Existing KMS key or alias ARN for EKS secret envelope encryption. If null and encryption is enabled, the module creates one. | `string` | `null` | no |
 | <a name="input_cluster_name"></a> [cluster\_name](#input\_cluster\_name) | EKS cluster name. If null, generated from name\_prefix | `string` | `null` | no |
 | <a name="input_cluster_service_ipv4_cidr"></a> [cluster\_service\_ipv4\_cidr](#input\_cluster\_service\_ipv4\_cidr) | CIDR block for Kubernetes service IPs | `string` | `null` | no |
 | <a name="input_create_gitlab_security_group"></a> [create\_gitlab\_security\_group](#input\_create\_gitlab\_security\_group) | Create dedicated security group and attach it to GitLab load balancer | `bool` | `false` | no |
@@ -286,6 +299,7 @@ No modules.
 | <a name="input_elasticache_snapshot_retention_limit"></a> [elasticache\_snapshot\_retention\_limit](#input\_elasticache\_snapshot\_retention\_limit) | Number of days to retain ElastiCache snapshots (currently only 0 is supported) | `number` | `0` | no |
 | <a name="input_elasticache_subnet_group_name"></a> [elasticache\_subnet\_group\_name](#input\_elasticache\_subnet\_group\_name) | Existing ElastiCache subnet group name. If null, module creates one | `string` | `null` | no |
 | <a name="input_elasticache_transit_encryption_enabled"></a> [elasticache\_transit\_encryption\_enabled](#input\_elasticache\_transit\_encryption\_enabled) | Enable in-transit encryption for ElastiCache | `bool` | `false` | no |
+| <a name="input_enable_cluster_encryption"></a> [enable\_cluster\_encryption](#input\_enable\_cluster\_encryption) | Whether to enable EKS secret envelope encryption | `bool` | `false` | no |
 | <a name="input_enable_cluster_creator_admin_permissions"></a> [enable\_cluster\_creator\_admin\_permissions](#input\_enable\_cluster\_creator\_admin\_permissions) | Grant cluster-admin permissions to the Terraform caller | `bool` | `true` | no |
 | <a name="input_enable_nat_gateway"></a> [enable\_nat\_gateway](#input\_enable\_nat\_gateway) | Whether to enable NAT gateway(s) when create\_vpc is true | `bool` | `true` | no |
 | <a name="input_gitlab_chart_version"></a> [gitlab\_chart\_version](#input\_gitlab\_chart\_version) | GitLab Helm chart version | `string` | `"8.4.1"` | no |
