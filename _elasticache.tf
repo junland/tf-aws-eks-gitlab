@@ -67,3 +67,23 @@ resource "aws_elasticache_replication_group" "gitlab" {
     Name = local.elasticache_replication_group_id
   })
 }
+
+moved {
+  from = aws_security_group.elasticache[0]
+  to   = aws_security_group.elasticache
+}
+
+moved {
+  from = aws_vpc_security_group_ingress_rule.elasticache_from_eks_nodes[0]
+  to   = aws_vpc_security_group_ingress_rule.elasticache_from_eks_nodes
+}
+
+moved {
+  from = aws_vpc_security_group_egress_rule.elasticache_all[0]
+  to   = aws_vpc_security_group_egress_rule.elasticache_all
+}
+
+moved {
+  from = aws_elasticache_replication_group.gitlab[0]
+  to   = aws_elasticache_replication_group.gitlab
+}
