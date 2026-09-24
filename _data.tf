@@ -46,7 +46,7 @@ data "aws_iam_policy_document" "eks_secrets_encryption" {
   }
 
   statement {
-    sid = "AllowEKSClusterRoleKeyUsage"
+    sid = "AllowEKSServiceKeyUsage"
 
     actions = [
       "kms:Decrypt",
@@ -59,13 +59,13 @@ data "aws_iam_policy_document" "eks_secrets_encryption" {
     resources = ["*"]
 
     principals {
-      type        = "AWS"
-      identifiers = [aws_iam_role.eks_cluster.arn]
+      type        = "Service"
+      identifiers = ["eks.amazonaws.com"]
     }
   }
 
   statement {
-    sid = "AllowEKSClusterRoleGrantManagement"
+    sid = "AllowEKSServiceGrantManagement"
 
     actions = [
       "kms:CreateGrant",
@@ -75,8 +75,8 @@ data "aws_iam_policy_document" "eks_secrets_encryption" {
     resources = ["*"]
 
     principals {
-      type        = "AWS"
-      identifiers = [aws_iam_role.eks_cluster.arn]
+      type        = "Service"
+      identifiers = ["eks.amazonaws.com"]
     }
 
     condition {
