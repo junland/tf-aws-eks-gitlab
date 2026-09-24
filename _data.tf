@@ -33,6 +33,61 @@ data "aws_iam_policy_document" "eks_node_group_assume_role" {
   }
 }
 
+data "aws_iam_policy_document" "eks_secrets_encryption" {
+  statement {
+    sid       = "EnableRootPermissions"
+    actions   = ["kms:*"]
+    resources = ["*"]
+
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:${data.aws_partition.current.partition}:iam::${data.aws_caller_identity.current.account_id}:root"]
+    }
+  }
+
+  statement {
+    sid = "AllowEKSClusterRoleKeyUsage"
+
+    actions = [
+      "kms:Decrypt",
+      "kms:DescribeKey",
+      "kms:Encrypt",
+      "kms:GenerateDataKey*",
+      "kms:ReEncrypt*"
+    ]
+
+    resources = ["*"]
+
+    principals {
+      type        = "AWS"
+      identifiers = [aws_iam_role.eks_cluster.arn]
+    }
+  }
+
+  statement {
+    sid = "AllowEKSClusterRoleGrantManagement"
+
+    actions = [
+      "kms:CreateGrant",
+      "kms:ListGrants",
+      "kms:RevokeGrant"
+    ]
+
+    resources = ["*"]
+
+    principals {
+      type        = "AWS"
+      identifiers = [aws_iam_role.eks_cluster.arn]
+    }
+
+    condition {
+      test     = "Bool"
+      variable = "kms:GrantIsForAWSResource"
+      values   = ["true"]
+    }
+  }
+}
+
 data "aws_iam_policy_document" "gitlab_irsa_assume_role" {
   count = local.manage_irsa_role ? 1 : 0
 

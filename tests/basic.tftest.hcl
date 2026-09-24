@@ -82,6 +82,16 @@ run "plan_with_existing_network_and_secrets" {
   command = plan
 
   assert {
+    condition     = aws_eks_cluster.this.access_config[0].authentication_mode == "API_AND_CONFIG_MAP"
+    error_message = "The EKS cluster should use the API-backed authentication mode instead of the deprecated CONFIG_MAP-only mode."
+  }
+
+  assert {
+    condition     = length(aws_eks_cluster.this.encryption_config) == 1 && aws_eks_cluster.this.encryption_config[0].resources == ["secrets"]
+    error_message = "The EKS cluster should require envelope encryption for Kubernetes secrets."
+  }
+
+  assert {
     condition     = output.gitlab_namespace == "gitlab"
     error_message = "The default GitLab namespace should remain gitlab."
   }

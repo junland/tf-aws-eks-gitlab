@@ -1,0 +1,6 @@
+resource "aws_kms_key" "eks_secrets" {
+  description         = "EKS secret encryption key for ${local.cluster_name}"
+  enable_key_rotation = true
+  policy              = data.aws_iam_policy_document.eks_secrets_encryption.json
+  tags                = local.tags
+}

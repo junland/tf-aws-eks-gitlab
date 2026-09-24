@@ -10,7 +10,7 @@ A production-ready Terraform module that provisions an Amazon EKS cluster and de
 
 ## Features
 
-- **Elastic Kubernetes Service (EKS)**: Configurable Kubernetes version, managed node groups, custom cluster networking, and IAM roles.
+- **Elastic Kubernetes Service (EKS)**: Configurable Kubernetes version, managed node groups, API-based cluster authentication, secret encryption, and IAM roles.
 - **Flexible VPC Networking**: Provisions a new managed VPC with public/private subnets or integrates with existing AWS network infrastructure.
 - **Official GitLab Helm Chart**: Deploys GitLab using the official Helm provider and chart (`https://charts.gitlab.io`).
 - **External Database & Object Storage**: Offloads state to external PostgreSQL and S3-compatible storage for high availability and scalability.
@@ -33,6 +33,7 @@ This module follows standard Terraform practices with standard `_*.tf` file nami
 ├── _outputs.tf         # Module output definitions
 ├── _vpc.tf             # AWS VPC, subnet, and routing resources
 ├── _eks.tf             # EKS Cluster & managed node group definitions
+├── _kms.tf             # KMS key for EKS secret encryption
 ├── _iam.tf             # IAM roles, policies, and IRSA configuration
 ├── _security_groups.tf # Security group rules for EKS & ElastiCache
 ├── _elasticache.tf     # AWS ElastiCache Redis replication group
@@ -214,6 +215,7 @@ No modules.
 | [aws_eks_addon.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_addon) | resource |
 | [aws_eks_cluster.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_cluster) | resource |
 | [aws_eks_node_group.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_node_group) | resource |
+| [aws_kms_key.eks_secrets](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/kms_key) | resource |
 | [aws_elasticache_replication_group.gitlab](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/elasticache_replication_group) | resource |
 | [aws_elasticache_subnet_group.gitlab](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/elasticache_subnet_group) | resource |
 | [aws_iam_openid_connect_provider.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_openid_connect_provider) | resource |
@@ -250,6 +252,7 @@ No modules.
 | [aws_eks_cluster_auth.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/eks_cluster_auth) | data source |
 | [aws_iam_policy_document.eks_cluster_assume_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.eks_node_group_assume_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
+| [aws_iam_policy_document.eks_secrets_encryption](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.gitlab_irsa_assume_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.gitlab_irsa_s3](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_partition.current](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/partition) | data source |
