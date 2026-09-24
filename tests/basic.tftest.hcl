@@ -97,8 +97,8 @@ run "plan_with_existing_network_and_secrets" {
   }
 
   assert {
-    condition     = output.gitlab_redis_external_host_configured
-    error_message = "External Redis host should be configured from the module-managed ElastiCache instance."
+    condition     = output.gitlab_redis_external_port == 6379
+    error_message = "External Redis port should default to 6379 for the module-managed ElastiCache instance."
   }
 
   assert {
