@@ -109,6 +109,13 @@ check "cluster_addons_supported_fields" {
   }
 }
 
+check "cluster_encryption_inputs" {
+  assert {
+    condition     = var.enable_cluster_encryption || var.cluster_encryption_key_arn == null
+    error_message = "Set enable_cluster_encryption to true when providing cluster_encryption_key_arn."
+  }
+}
+
 check "elasticache_snapshot_retention_limit" {
   assert {
     condition     = var.elasticache_snapshot_retention_limit == 0

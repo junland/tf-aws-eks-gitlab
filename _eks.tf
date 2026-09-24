@@ -17,7 +17,7 @@ resource "aws_eks_cluster" "this" {
   }
 
   dynamic "encryption_config" {
-    for_each = var.enable_cluster_encryption || var.cluster_encryption_key_arn != null ? [1] : []
+    for_each = var.enable_cluster_encryption ? [1] : []
 
     content {
       resources = ["secrets"]

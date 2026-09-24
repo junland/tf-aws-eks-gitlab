@@ -164,6 +164,16 @@ run "plan_with_existing_cluster_encryption_key" {
   }
 }
 
+run "fails_with_cluster_encryption_key_without_enablement" {
+  command = plan
+
+  variables {
+    cluster_encryption_key_arn = "arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012"
+  }
+
+  expect_failures = [check.cluster_encryption_inputs]
+}
+
 run "plan_derives_secret_names_from_release_name" {
   command = plan
 
