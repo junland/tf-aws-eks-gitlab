@@ -143,6 +143,11 @@ run "plan_with_module_managed_cluster_encryption" {
     condition     = length(aws_kms_key.eks_secrets) == 1
     error_message = "The module should create a dedicated KMS key for EKS secret encryption when encryption is enabled without an existing KMS key."
   }
+
+  assert {
+    condition     = aws_eks_cluster.this.encryption_config[0].provider[0].key_arn == aws_kms_key.eks_secrets[0].arn
+    error_message = "The EKS cluster should use the module-managed KMS key when encryption is enabled without an existing key ARN."
+  }
 }
 
 run "plan_with_existing_cluster_encryption_key" {
