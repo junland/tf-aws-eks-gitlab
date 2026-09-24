@@ -1,5 +1,5 @@
 resource "aws_elasticache_subnet_group" "gitlab" {
-  count = var.enable_elasticache && var.elasticache_subnet_group_name == null ? 1 : 0
+  count = var.elasticache_subnet_group_name == null ? 1 : 0
 
   name       = "${local.elasticache_replication_group_id}-subnets"
   subnet_ids = local.private_subnet_ids
@@ -10,8 +10,6 @@ resource "aws_elasticache_subnet_group" "gitlab" {
 }
 
 resource "aws_security_group" "elasticache" {
-  count = var.enable_elasticache ? 1 : 0
-
   name        = "${local.elasticache_replication_group_id}-sg"
   description = "Security group for GitLab ElastiCache"
   vpc_id      = local.vpc_id
@@ -22,9 +20,7 @@ resource "aws_security_group" "elasticache" {
 }
 
 resource "aws_vpc_security_group_ingress_rule" "elasticache_from_eks_nodes" {
-  count = var.enable_elasticache ? 1 : 0
-
-  security_group_id            = aws_security_group.elasticache[0].id
+  security_group_id            = aws_security_group.elasticache.id
   referenced_security_group_id = aws_eks_cluster.this.vpc_config[0].cluster_security_group_id
   from_port                    = local.elasticache_connection_port
   to_port                      = local.elasticache_connection_port
@@ -32,9 +28,9 @@ resource "aws_vpc_security_group_ingress_rule" "elasticache_from_eks_nodes" {
 }
 
 resource "aws_vpc_security_group_ingress_rule" "elasticache_from_cidr" {
-  for_each = var.enable_elasticache ? toset(var.elasticache_allowed_cidrs) : toset([])
+  for_each = toset(var.elasticache_allowed_cidrs)
 
-  security_group_id = aws_security_group.elasticache[0].id
+  security_group_id = aws_security_group.elasticache.id
   cidr_ipv4         = each.value
   from_port         = local.elasticache_connection_port
   to_port           = local.elasticache_connection_port
@@ -42,16 +38,12 @@ resource "aws_vpc_security_group_ingress_rule" "elasticache_from_cidr" {
 }
 
 resource "aws_vpc_security_group_egress_rule" "elasticache_all" {
-  count = var.enable_elasticache ? 1 : 0
-
-  security_group_id = aws_security_group.elasticache[0].id
+  security_group_id = aws_security_group.elasticache.id
   cidr_ipv4         = "0.0.0.0/0"
   ip_protocol       = "-1"
 }
 
 resource "aws_elasticache_replication_group" "gitlab" {
-  count = var.enable_elasticache ? 1 : 0
-
   replication_group_id = local.elasticache_replication_group_id
   description          = "GitLab Redis for ${local.cluster_name}"
   engine               = "redis"
@@ -74,4 +66,24 @@ resource "aws_elasticache_replication_group" "gitlab" {
   tags = merge(local.tags, {
     Name = local.elasticache_replication_group_id
   })
+}
+
+moved {
+  from = aws_security_group.elasticache[0]
+  to   = aws_security_group.elasticache
+}
+
+moved {
+  from = aws_vpc_security_group_ingress_rule.elasticache_from_eks_nodes[0]
+  to   = aws_vpc_security_group_ingress_rule.elasticache_from_eks_nodes
+}
+
+moved {
+  from = aws_vpc_security_group_egress_rule.elasticache_all[0]
+  to   = aws_vpc_security_group_egress_rule.elasticache_all
+}
+
+moved {
+  from = aws_elasticache_replication_group.gitlab[0]
+  to   = aws_elasticache_replication_group.gitlab
 }

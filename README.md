@@ -16,7 +16,7 @@ A production-ready Terraform module that provisions an Amazon EKS cluster and de
 - **External Database & Object Storage**: Offloads state to external PostgreSQL and S3-compatible storage for high availability and scalability.
 - **Secure Secret Management**: Integrates with pre-existing Kubernetes Secrets or provisions them securely via Terraform inputs.
 - **AWS IRSA Integration**: Supports IAM Roles for Service Accounts (IRSA) for native, keyless AWS S3 authentication.
-- **Optional ElastiCache Redis**: Optional automated provisioning of Amazon ElastiCache Redis with automatic GitLab connection wiring.
+- **Managed ElastiCache Redis**: Automatically provisions Amazon ElastiCache Redis and wires GitLab to it.
 - **Production-Oriented**: Includes customizable defaults for ingress, TLS/cert-manager, autoscaling, and custom Helm value overrides.
 
 ---
@@ -115,14 +115,13 @@ module "gitlab_eks" {
 | `postgresql_username` | `string` | *Required* | Username for PostgreSQL authentication. |
 | `s3_region` | `string` | *Required* | AWS region where the S3 buckets reside. |
 | `create_vpc` | `bool` | `true` | Set to `false` to deploy EKS inside an existing VPC. |
-| `enable_elasticache` | `bool` | `false` | Provisions an AWS ElastiCache Redis cluster and wires it to GitLab. |
 | `s3_use_iam_profile` | `bool` | `false` | Enables IRSA for AWS S3 authentication without static access keys. |
 
 ---
 
 ## ElastiCache Redis Integration
 
-Setting `enable_elasticache = true` automates the provisioning of Amazon ElastiCache Redis and overrides the bundled Helm chart Redis (`redis.install = false`).
+The module always provisions Amazon ElastiCache Redis and overrides the bundled Helm chart Redis (`redis.install = false`).
 
 ### Current Capabilities & Constraints
 
@@ -288,7 +287,6 @@ No modules.
 | <a name="input_elasticache_subnet_group_name"></a> [elasticache\_subnet\_group\_name](#input\_elasticache\_subnet\_group\_name) | Existing ElastiCache subnet group name. If null, module creates one | `string` | `null` | no |
 | <a name="input_elasticache_transit_encryption_enabled"></a> [elasticache\_transit\_encryption\_enabled](#input\_elasticache\_transit\_encryption\_enabled) | Enable in-transit encryption for ElastiCache | `bool` | `false` | no |
 | <a name="input_enable_cluster_creator_admin_permissions"></a> [enable\_cluster\_creator\_admin\_permissions](#input\_enable\_cluster\_creator\_admin\_permissions) | Grant cluster-admin permissions to the Terraform caller | `bool` | `true` | no |
-| <a name="input_enable_elasticache"></a> [enable\_elasticache](#input\_enable\_elasticache) | Create and configure an ElastiCache Redis replication group for GitLab | `bool` | `false` | no |
 | <a name="input_enable_nat_gateway"></a> [enable\_nat\_gateway](#input\_enable\_nat\_gateway) | Whether to enable NAT gateway(s) when create\_vpc is true | `bool` | `true` | no |
 | <a name="input_gitlab_chart_version"></a> [gitlab\_chart\_version](#input\_gitlab\_chart\_version) | GitLab Helm chart version | `string` | `"8.4.1"` | no |
 | <a name="input_gitlab_configure_cert_manager"></a> [gitlab\_configure\_cert\_manager](#input\_gitlab\_configure\_cert\_manager) | Whether GitLab chart should configure cert-manager integration | `bool` | `false` | no |
@@ -357,8 +355,8 @@ No modules.
 | <a name="output_cluster_endpoint"></a> [cluster\_endpoint](#output\_cluster\_endpoint) | EKS cluster endpoint |
 | <a name="output_cluster_name"></a> [cluster\_name](#output\_cluster\_name) | EKS cluster name |
 | <a name="output_cluster_oidc_provider_arn"></a> [cluster\_oidc\_provider\_arn](#output\_cluster\_oidc\_provider\_arn) | OIDC provider ARN associated with the cluster |
-| <a name="output_elasticache_primary_endpoint_address"></a> [elasticache\_primary\_endpoint\_address](#output\_elasticache\_primary\_endpoint\_address) | Primary endpoint address for ElastiCache Redis when enabled |
-| <a name="output_elasticache_replication_group_id"></a> [elasticache\_replication\_group\_id](#output\_elasticache\_replication\_group\_id) | ElastiCache replication group ID when enabled |
+| <a name="output_elasticache_primary_endpoint_address"></a> [elasticache\_primary\_endpoint\_address](#output\_elasticache\_primary\_endpoint\_address) | Primary endpoint address for ElastiCache Redis |
+| <a name="output_elasticache_replication_group_id"></a> [elasticache\_replication\_group\_id](#output\_elasticache\_replication\_group\_id) | ElastiCache replication group ID |
 | <a name="output_elasticache_transit_encryption_enabled"></a> [elasticache\_transit\_encryption\_enabled](#output\_elasticache\_transit\_encryption\_enabled) | Whether ElastiCache transit encryption is enabled |
 | <a name="output_gitlab_irsa_role_arn"></a> [gitlab\_irsa\_role\_arn](#output\_gitlab\_irsa\_role\_arn) | IRSA role ARN used by GitLab service accounts |
 | <a name="output_gitlab_namespace"></a> [gitlab\_namespace](#output\_gitlab\_namespace) | GitLab namespace |
