@@ -104,6 +104,18 @@ data "aws_iam_policy_document" "eks_secrets_encryption" {
       type        = "Service"
       identifiers = ["eks.amazonaws.com"]
     }
+
+    condition {
+      test     = "StringEquals"
+      variable = "kms:CallerAccount"
+      values   = [data.aws_caller_identity.current.account_id]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "kms:ViaService"
+      values   = ["eks.${var.aws_region}.${data.aws_partition.current.dns_suffix}"]
+    }
   }
 
   statement {
@@ -120,6 +132,18 @@ data "aws_iam_policy_document" "eks_secrets_encryption" {
     principals {
       type        = "Service"
       identifiers = ["eks.amazonaws.com"]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "kms:CallerAccount"
+      values   = [data.aws_caller_identity.current.account_id]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "kms:ViaService"
+      values   = ["eks.${var.aws_region}.${data.aws_partition.current.dns_suffix}"]
     }
 
     condition {
