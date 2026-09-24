@@ -10,7 +10,7 @@ A production-ready Terraform module that provisions an Amazon EKS cluster and de
 
 ## Features
 
-- **Elastic Kubernetes Service (EKS)**: Configurable Kubernetes version, managed node groups, API-based cluster authentication, secret encryption, and IAM roles.
+- **Elastic Kubernetes Service (EKS)**: Configurable Kubernetes version, managed node groups, API-based cluster authentication, secret encryption with module-managed or existing KMS keys, and IAM roles.
 - **Flexible VPC Networking**: Provisions a new managed VPC with public/private subnets or integrates with existing AWS network infrastructure.
 - **Official GitLab Helm Chart**: Deploys GitLab using the official Helm provider and chart (`https://charts.gitlab.io`).
 - **External Database & Object Storage**: Offloads state to external PostgreSQL and S3-compatible storage for high availability and scalability.
@@ -265,9 +265,11 @@ No modules.
 | <a name="input_aws_region"></a> [aws\_region](#input\_aws\_region) | AWS region where resources are deployed | `string` | `"us-east-1"` | no |
 | <a name="input_azs"></a> [azs](#input\_azs) | Availability zones for subnets when create\_vpc is true | `list(string)` | <pre>[<br/>  "us-east-1a",<br/>  "us-east-1b",<br/>  "us-east-1c"<br/>]</pre> | no |
 | <a name="input_cluster_addons"></a> [cluster\_addons](#input\_cluster\_addons) | EKS cluster add-ons used to create aws\_eks\_addon resources | <pre>map(object({<br/>    addon_version               = optional(string)<br/>    configuration_values        = optional(string)<br/>    preserve                    = optional(bool)<br/>    resolve_conflicts           = optional(string)<br/>    resolve_conflicts_on_create = optional(string)<br/>    resolve_conflicts_on_update = optional(string)<br/>    service_account_role_arn    = optional(string)<br/>  }))</pre> | <pre>{<br/>  "coredns": {},<br/>  "eks-pod-identity-agent": {},<br/>  "kube-proxy": {},<br/>  "vpc-cni": {}<br/>}</pre> | no |
+| <a name="input_cluster_authentication_mode"></a> [cluster\_authentication\_mode](#input\_cluster\_authentication\_mode) | Authentication mode for the EKS cluster access API | `string` | `"API_AND_CONFIG_MAP"` | no |
 | <a name="input_cluster_enabled_log_types"></a> [cluster\_enabled\_log\_types](#input\_cluster\_enabled\_log\_types) | EKS control plane logs to enable | `list(string)` | <pre>[<br/>  "api",<br/>  "audit",<br/>  "authenticator",<br/>  "controllerManager",<br/>  "scheduler"<br/>]</pre> | no |
 | <a name="input_cluster_endpoint_private_access"></a> [cluster\_endpoint\_private\_access](#input\_cluster\_endpoint\_private\_access) | Whether the EKS API endpoint is privately accessible | `bool` | `true` | no |
 | <a name="input_cluster_endpoint_public_access"></a> [cluster\_endpoint\_public\_access](#input\_cluster\_endpoint\_public\_access) | Whether the EKS API endpoint is publicly accessible | `bool` | `true` | no |
+| <a name="input_cluster_encryption_key_arn"></a> [cluster\_encryption\_key\_arn](#input\_cluster\_encryption\_key\_arn) | Existing KMS key ARN for EKS secret envelope encryption. If null, the module creates one. | `string` | `null` | no |
 | <a name="input_cluster_name"></a> [cluster\_name](#input\_cluster\_name) | EKS cluster name. If null, generated from name\_prefix | `string` | `null` | no |
 | <a name="input_cluster_service_ipv4_cidr"></a> [cluster\_service\_ipv4\_cidr](#input\_cluster\_service\_ipv4\_cidr) | CIDR block for Kubernetes service IPs | `string` | `null` | no |
 | <a name="input_create_gitlab_security_group"></a> [create\_gitlab\_security\_group](#input\_create\_gitlab\_security\_group) | Create dedicated security group and attach it to GitLab load balancer | `bool` | `false` | no |

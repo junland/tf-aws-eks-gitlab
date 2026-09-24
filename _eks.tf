@@ -12,7 +12,7 @@ resource "aws_eks_cluster" "this" {
   }
 
   access_config {
-    authentication_mode                         = "API_AND_CONFIG_MAP"
+    authentication_mode                         = var.cluster_authentication_mode
     bootstrap_cluster_creator_admin_permissions = var.enable_cluster_creator_admin_permissions
   }
 
@@ -20,7 +20,7 @@ resource "aws_eks_cluster" "this" {
     resources = ["secrets"]
 
     provider {
-      key_arn = aws_kms_key.eks_secrets.arn
+      key_arn = var.cluster_encryption_key_arn != null ? var.cluster_encryption_key_arn : aws_kms_key.eks_secrets[0].arn
     }
   }
 

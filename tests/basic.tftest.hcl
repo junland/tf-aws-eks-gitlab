@@ -92,6 +92,11 @@ run "plan_with_existing_network_and_secrets" {
   }
 
   assert {
+    condition     = length(aws_kms_key.eks_secrets) == 1
+    error_message = "The module should create a dedicated KMS key for EKS secret encryption when one is not provided."
+  }
+
+  assert {
     condition     = output.gitlab_namespace == "gitlab"
     error_message = "The default GitLab namespace should remain gitlab."
   }
@@ -119,6 +124,19 @@ run "plan_with_existing_network_and_secrets" {
   assert {
     condition     = output.gitlab_redis_chart_install == false
     error_message = "Bundled Redis should stay disabled because the module always manages ElastiCache."
+  }
+}
+
+run "plan_with_existing_cluster_encryption_key" {
+  command = plan
+
+  variables {
+    cluster_encryption_key_arn = "arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012"
+  }
+
+  assert {
+    condition     = length(aws_kms_key.eks_secrets) == 0
+    error_message = "The module should not create an EKS encryption key when an existing KMS key ARN is provided."
   }
 }
 

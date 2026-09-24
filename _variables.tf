@@ -46,6 +46,23 @@ variable "cluster_service_ipv4_cidr" {
   default     = null
 }
 
+variable "cluster_authentication_mode" {
+  description = "Authentication mode for the EKS cluster access API"
+  type        = string
+  default     = "API_AND_CONFIG_MAP"
+
+  validation {
+    condition     = contains(["API", "API_AND_CONFIG_MAP"], var.cluster_authentication_mode)
+    error_message = "cluster_authentication_mode must be API or API_AND_CONFIG_MAP."
+  }
+}
+
+variable "cluster_encryption_key_arn" {
+  description = "Existing KMS key ARN for EKS secret envelope encryption. If null, the module creates one."
+  type        = string
+  default     = null
+}
+
 variable "enable_cluster_creator_admin_permissions" {
   description = "Grant cluster-admin permissions to the Terraform caller"
   type        = bool
