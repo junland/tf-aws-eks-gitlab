@@ -355,8 +355,8 @@ No modules.
 | <a name="output_cluster_endpoint"></a> [cluster\_endpoint](#output\_cluster\_endpoint) | EKS cluster endpoint |
 | <a name="output_cluster_name"></a> [cluster\_name](#output\_cluster\_name) | EKS cluster name |
 | <a name="output_cluster_oidc_provider_arn"></a> [cluster\_oidc\_provider\_arn](#output\_cluster\_oidc\_provider\_arn) | OIDC provider ARN associated with the cluster |
-| <a name="output_elasticache_primary_endpoint_address"></a> [elasticache\_primary\_endpoint\_address](#output\_elasticache\_primary\_endpoint\_address) | Primary endpoint address for ElastiCache Redis when enabled |
-| <a name="output_elasticache_replication_group_id"></a> [elasticache\_replication\_group\_id](#output\_elasticache\_replication\_group\_id) | ElastiCache replication group ID when enabled |
+| <a name="output_elasticache_primary_endpoint_address"></a> [elasticache\_primary\_endpoint\_address](#output\_elasticache\_primary\_endpoint\_address) | Primary endpoint address for ElastiCache Redis |
+| <a name="output_elasticache_replication_group_id"></a> [elasticache\_replication\_group\_id](#output\_elasticache\_replication\_group\_id) | ElastiCache replication group ID |
 | <a name="output_elasticache_transit_encryption_enabled"></a> [elasticache\_transit\_encryption\_enabled](#output\_elasticache\_transit\_encryption\_enabled) | Whether ElastiCache transit encryption is enabled |
 | <a name="output_gitlab_irsa_role_arn"></a> [gitlab\_irsa\_role\_arn](#output\_gitlab\_irsa\_role\_arn) | IRSA role ARN used by GitLab service accounts |
 | <a name="output_gitlab_namespace"></a> [gitlab\_namespace](#output\_gitlab\_namespace) | GitLab namespace |

@@ -171,12 +171,12 @@ run "plan_with_default_elasticache" {
 
   assert {
     condition     = output.gitlab_redis_chart_install == false
-    error_message = "Bundled Redis should be disabled when ElastiCache is enabled."
+    error_message = "Bundled Redis should be disabled because the module always manages ElastiCache."
   }
 
   assert {
     condition     = output.gitlab_redis_external_port == 6379
-    error_message = "External Redis port should default to 6379 when ElastiCache is enabled."
+    error_message = "External Redis port should default to 6379 for the module-managed ElastiCache instance."
   }
 
   assert {
