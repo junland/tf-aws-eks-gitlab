@@ -71,6 +71,7 @@ data "aws_iam_policy_document" "eks_secrets_encryption" {
       "kms:CreateGrant",
       "kms:DescribeKey",
       "kms:ListGrants",
+      "kms:RetireGrant",
     ]
 
     resources = ["*"]
