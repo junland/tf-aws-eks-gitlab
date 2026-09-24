@@ -117,13 +117,17 @@ run "plan_with_existing_network_and_secrets" {
   }
 
   assert {
-    condition     = output.gitlab_redis_external_host_configured == true
-    error_message = "External Redis host should be configured to the module-managed ElastiCache endpoint."
-  }
-
-  assert {
     condition     = output.gitlab_redis_chart_install == false
     error_message = "Bundled Redis should stay disabled because the module always manages ElastiCache."
+  }
+}
+
+run "apply_with_existing_network_and_secrets" {
+  command = apply
+
+  assert {
+    condition     = output.gitlab_redis_external_host_configured == true
+    error_message = "External Redis host should be configured to the module-managed ElastiCache endpoint."
   }
 }
 
