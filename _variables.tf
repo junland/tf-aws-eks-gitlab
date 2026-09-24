@@ -461,7 +461,7 @@ variable "external_redis" {
   default = null
 
   validation {
-    condition     = var.external_redis == null ? true : trim(var.external_redis.host) != ""
+    condition     = var.external_redis == null ? true : trimspace(var.external_redis.host) != ""
     error_message = "When external_redis is set, host must be a non-empty string."
   }
 

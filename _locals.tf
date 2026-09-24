@@ -165,7 +165,7 @@ locals {
         auth = {
           enabled = false
         }
-      } : {
+        } : {
         host   = null
         port   = null
         scheme = null
