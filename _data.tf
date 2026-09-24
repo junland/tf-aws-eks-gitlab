@@ -86,6 +86,48 @@ data "aws_iam_policy_document" "eks_secrets_encryption" {
       values   = ["true"]
     }
   }
+
+  statement {
+    sid = "AllowEKSServiceKeyUsage"
+
+    actions = [
+      "kms:Decrypt",
+      "kms:DescribeKey",
+      "kms:Encrypt",
+      "kms:GenerateDataKey*",
+      "kms:ReEncrypt*"
+    ]
+
+    resources = ["*"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["eks.amazonaws.com"]
+    }
+  }
+
+  statement {
+    sid = "AllowEKSServiceGrantManagement"
+
+    actions = [
+      "kms:CreateGrant",
+      "kms:ListGrants",
+      "kms:RevokeGrant"
+    ]
+
+    resources = ["*"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["eks.amazonaws.com"]
+    }
+
+    condition {
+      test     = "Bool"
+      variable = "kms:GrantIsForAWSResource"
+      values   = ["true"]
+    }
+  }
 }
 
 data "aws_iam_policy_document" "gitlab_irsa_assume_role" {
