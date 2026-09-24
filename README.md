@@ -120,6 +120,7 @@ module "gitlab_eks" {
 
 ### EKS Secret Encryption Inputs
 
+- `cluster_authentication_mode` defaults to `API_AND_CONFIG_MAP` and supports `API` or `API_AND_CONFIG_MAP`.
 - Set `enable_cluster_encryption = true` to enable EKS secret envelope encryption.
 - Leave `cluster_encryption_key_arn = null` to let the module create a KMS key, or provide a non-empty existing KMS key ARN.
 - Do not set `cluster_encryption_key_arn` unless `enable_cluster_encryption` is `true`.

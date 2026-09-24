@@ -182,7 +182,7 @@ run "fails_with_empty_cluster_encryption_key_arn" {
     cluster_encryption_key_arn = ""
   }
 
-  expect_failures = [check.cluster_encryption_inputs]
+  expect_failures = [var.cluster_encryption_key_arn]
 }
 
 run "plan_derives_secret_names_from_release_name" {

@@ -111,10 +111,8 @@ check "cluster_addons_supported_fields" {
 
 check "cluster_encryption_inputs" {
   assert {
-    condition = var.enable_cluster_encryption ? (
-      var.cluster_encryption_key_arn == null ? true : trimspace(var.cluster_encryption_key_arn) != ""
-    ) : var.cluster_encryption_key_arn == null
-    error_message = "Set enable_cluster_encryption to true when providing a non-empty cluster_encryption_key_arn."
+    condition     = var.enable_cluster_encryption || var.cluster_encryption_key_arn == null
+    error_message = "Do not set cluster_encryption_key_arn unless enable_cluster_encryption is true."
   }
 }
 
